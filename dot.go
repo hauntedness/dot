@@ -101,18 +101,18 @@ type TypeImpl struct {
 	Name        string // type name, can also be TypeParam name
 }
 
-func NewType(fullName string) Type {
+func NewType(fullTypeName string) Type {
 	var t TypeImpl
-	if count := strings.Count(fullName, "*"); count > 0 {
+	if count := strings.Count(fullTypeName, "*"); count > 0 {
 		t.Stars = count
-		fullName = fullName[count:]
+		fullTypeName = fullTypeName[count:]
 	}
-	packageName, name, found := strings.Cut(fullName, ".")
+	packageName, name, found := strings.Cut(fullTypeName, ".")
 	if found {
 		t.Name = name
 		t.PackageName = packageName
 	} else {
-		t.Name = fullName
+		t.Name = fullTypeName
 	}
 	return t
 }
