@@ -18,7 +18,14 @@ type {{.Name}} {{template "TemplateTypeParams" .}} struct{
 		{{- range .Comments -}}
 			// {{- . }}
 		{{ end }}
-		{{- Backquote .Tag | printf "%s %s %s" .Name .Type.ID }}
+		{{- Backquote .Tag | printf "%s %s %s" .Name .Type.FullName }}
 	{{ end }}
+}
+`
+
+var TemplateConstructor = `
+func New{{.Name}}() *{{Name}}{
+	// 
+	return &Name{}
 }
 `

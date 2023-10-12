@@ -3,6 +3,7 @@ package dot
 import (
 	"fmt"
 	"go/format"
+	"reflect"
 	"testing"
 )
 
@@ -13,13 +14,13 @@ func TestStruct_ExecuteTemplateString(t *testing.T) {
 		Fields: []Field{
 			{
 				Name:     "Name",
-				Type:     Type{Name: "string"},
+				Type:     NewType("*fmt.Stringer"),
 				Tag:      `json:"name"`,
 				Comments: []string{"the name"},
 			},
 			{
 				Name:     "Age",
-				Type:     Type{Name: "int"},
+				Type:     TypeImpl{Name: "int"},
 				Tag:      `json:"age"`,
 				Comments: []string{"the age"},
 			},
@@ -40,5 +41,61 @@ func TestStruct_ExecuteTemplateString(t *testing.T) {
 		return
 	} else {
 		fmt.Println(string(b))
+	}
+}
+
+func TestNewType(t *testing.T) {
+	type args struct {
+		fullName string
+	}
+	tests := []struct {
+		name string
+		args args
+		want Type
+	}{
+		{
+			name: "single",
+			args: args{
+				fullName: "string",
+			},
+			want: TypeImpl{Name: "string"},
+		},
+		{
+			name: "with package",
+			args: args{
+				fullName: "fmt.Stringer",
+			},
+			want: TypeImpl{PackageName: "fmt", Name: "Stringer"},
+		},
+		{
+			name: "with pointer",
+			args: args{
+				fullName: "*string",
+			},
+			want: TypeImpl{Stars: 1, Name: "string"},
+		},
+		{
+			name: "with pointer and package",
+			args: args{
+				fullName: "*fmt.Stringer",
+			},
+			want: TypeImpl{Stars: 1, PackageName: "fmt", Name: "Stringer"},
+		},
+		{
+			name: "with package and many pointers",
+			args: args{
+				fullName: "**fmt.Stringer",
+			},
+			want: TypeImpl{Stars: 2, PackageName: "fmt", Name: "Stringer"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewType(tt.args.fullName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewType() = %v, want %v", got, tt.want)
+			} else {
+				fmt.Println(got)
+			}
+		})
 	}
 }

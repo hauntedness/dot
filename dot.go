@@ -88,22 +88,42 @@ type Comments []string
 // Templates
 type Templates []string
 
+type Type interface {
+	FullName() string
+}
+
 // Type
-type Type struct {
+type TypeImpl struct {
 	// represent the number of the pointer charactor "*"
 	Stars int
 	// Package
-	Package Package
-	Name    string // type name, can also be TypeParam name
+	PackageName string
+	Name        string // type name, can also be TypeParam name
+}
+
+func NewType(fullName string) Type {
+	var t TypeImpl
+	if count := strings.Count(fullName, "*"); count > 0 {
+		t.Stars = count
+		fullName = fullName[count:]
+	}
+	packageName, name, found := strings.Cut(fullName, ".")
+	if found {
+		t.Name = name
+		t.PackageName = packageName
+	} else {
+		t.Name = fullName
+	}
+	return t
 }
 
 // ID return the qualified type name
-func (t Type) ID() string {
+func (t TypeImpl) FullName() string {
 	result := ""
-	if t.Package == (Package{}) {
+	if t.PackageName == "" {
 		result = t.Name
 	} else {
-		result = t.Package.Name + t.Name
+		result = t.PackageName + "." + t.Name
 	}
 	for i := 0; i < t.Stars; i++ {
 		result = "*" + result
