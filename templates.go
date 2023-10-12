@@ -2,8 +2,8 @@ package dot
 
 var TemplateStruct = `
 {{- define "TemplateTypeParams" }}[
-	{{- range .TypeParams -}} 
-		{{- printf "%s %s" .TypeName .Constraint}}, 
+	{{- if .TypeParams -}} 
+		{{- .TypeParams}}, 
 	{{- end -}}]
 {{- end}}
 {{- range .Comments }}

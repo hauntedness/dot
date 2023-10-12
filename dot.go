@@ -9,7 +9,7 @@ import (
 // Struct which is going to be generated with [Templates] around it
 type Struct struct {
 	Name       string         // name of the struct
-	TypeParams []TypeParam    // TypeParam
+	TypeParams string         // TypeParam
 	Fields     Fields         // fields definition
 	Directives Directives     // go directives of the struct
 	Comments   Comments       // comments on top of struct
@@ -109,15 +109,6 @@ func (t Type) ID() string {
 		result = "*" + result
 	}
 	return result
-}
-
-// TypeParams
-type TypeParams []TypeParam
-
-// A TypeParam represents a type parameter type.
-type TypeParam struct {
-	TypeName   string // corresponding type name
-	Constraint string
 }
 
 // Package
