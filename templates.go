@@ -1,6 +1,6 @@
 package dot
 
-var TemplateStruct = `
+const TemplateStruct = `
 {{- define "TemplateTypeParams" }}[
 	{{- if .TypeParams -}} 
 		{{- .TypeParams}}, 
@@ -27,7 +27,7 @@ type {{.Name}} {{template "TemplateTypeParams" .}} struct{
 }
 `
 
-var TemplateOptions = `
+const TemplateOptions = `
 {{$struct := .}}
 {{ range .Fields }}
 var With{{ Transform .Name "ToUpper1st" }} = func({{ Transform .Name "ToLower1st" }} {{ .Type.FullName }}) func(*{{$struct.Name}}) {
