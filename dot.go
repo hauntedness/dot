@@ -19,11 +19,7 @@ type Struct struct {
 
 // Execute execute template into writer
 func (s *Struct) ExecuteTemplate(writer io.Writer, tmpl string) error {
-	template, err := template.New("").Funcs(template.FuncMap{
-		"Backquote": func(text string) string {
-			return "`" + text + "`"
-		},
-	}).Parse(string(tmpl))
+	template, err := template.New("").Funcs(FuncMap).Parse(string(tmpl))
 	if err != nil {
 		return err
 	}
@@ -32,11 +28,7 @@ func (s *Struct) ExecuteTemplate(writer io.Writer, tmpl string) error {
 
 // Execute execute template into string
 func (s *Struct) ExecuteTemplateString(tmpl string) (string, error) {
-	template, err := template.New("").Funcs(template.FuncMap{
-		"Backquote": func(text string) string {
-			return "`" + text + "`"
-		},
-	}).Parse(string(tmpl))
+	template, err := template.New("").Funcs(FuncMap).Parse(string(tmpl))
 	if err != nil {
 		return "", err
 	}
@@ -51,11 +43,7 @@ func (s *Struct) ExecuteTemplateString(tmpl string) (string, error) {
 // Execute execute templates
 func (s *Struct) Execute(writer io.Writer) error {
 	for _, tmpl := range s.Templates {
-		template, err := template.New("").Funcs(template.FuncMap{
-			"Backquote": func(text string) string {
-				return "`" + text + "`"
-			},
-		}).Parse(string(tmpl))
+		template, err := template.New("").Funcs(FuncMap).Parse(string(tmpl))
 		if err != nil {
 			return err
 		}
@@ -88,6 +76,7 @@ type Comments []string
 // Templates
 type Templates []string
 
+// Type
 type Type interface {
 	FullName() string
 }
@@ -98,7 +87,7 @@ type TypeImpl struct {
 	Stars int
 	// Package
 	PackageName string
-	Name        string // type name, can also be TypeParam name
+	Name        string // type name, can also be TypeParam name, []any, map[any]any
 }
 
 func NewType(fullTypeName string) Type {

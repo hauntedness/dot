@@ -18,14 +18,22 @@ type {{.Name}} {{template "TemplateTypeParams" .}} struct{
 		{{- range .Comments -}}
 			// {{- . }}
 		{{ end }}
+		{{- if .Tag}}
 		{{- Backquote .Tag | printf "%s %s %s" .Name .Type.FullName }}
+		{{- else}}
+		{{- printf "%s %s" .Name .Type.FullName }}
+		{{- end}}
 	{{ end }}
 }
 `
 
-var TemplateConstructor = `
-func New{{.Name}}() *{{Name}}{
-	// 
-	return &Name{}
+var TemplateOptions = `
+{{$struct := .}}
+{{ range .Fields }}
+var With{{ Transform .Name "ToUpper1st" }} = func({{ Transform .Name "ToLower1st" }} {{ .Type.FullName }}) func(*{{$struct.Name}}) {
+	return func(o *{{$struct.Name}}) {
+		o.{{.Name}} = {{ Transform .Name "ToLower1st" }}
+	}
 }
+{{ end }}
 `
