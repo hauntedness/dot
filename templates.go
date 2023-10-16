@@ -1,10 +1,10 @@
 package dot
 
 const TemplateStruct = `
-{{- define "TemplateTypeParams" }}[
-	{{- if .TypeParams -}} 
-		{{- .TypeParams}}, 
-	{{- end -}}]
+{{- define "TemplateTypeParams" }}
+	{{- if .TypeParams -}}
+		{{- .TypeParams}}
+	{{- end -}}
 {{- end}}
 {{- range .Comments }}
 	{{- "// " }} {{- . }}

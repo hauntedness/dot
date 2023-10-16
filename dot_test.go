@@ -10,7 +10,7 @@ import (
 func TestStruct_ExecuteTemplateString(t *testing.T) {
 	st := Struct{
 		Name:       "TestStruct",
-		TypeParams: "T any, R string",
+		TypeParams: "[T any, R string]",
 		Fields: []Field{
 			{
 				Name:     "Name",
