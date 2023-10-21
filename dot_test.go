@@ -20,7 +20,7 @@ func TestStruct_ExecuteTemplateString(t *testing.T) {
 			},
 			{
 				Name:     "Age",
-				Type:     TypeImpl{Name: "int"},
+				Type:     Int,
 				Tag:      `json:"age"`,
 				Comments: []string{"the age"},
 			},

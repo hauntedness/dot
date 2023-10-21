@@ -7,7 +7,7 @@ const TemplateStruct = `
 	{{- end -}}
 {{- end}}
 {{- range .Comments }}
-	{{- "// " }} {{- . }}
+	// {{- . }}
 {{- end }}
 	//
 {{- range .Directives }}
@@ -19,9 +19,9 @@ type {{.Name}} {{template "TemplateTypeParams" .}} struct{
 			// {{- . }}
 		{{ end }}
 		{{- if .Tag}}
-		{{- Backquote .Tag | printf "%s %s %s" .Name .Type.FullName }}
+			{{- Backquote .Tag | printf "%s %s %s" .Name .Type.FullName }}
 		{{- else}}
-		{{- printf "%s %s" .Name .Type.FullName }}
+			{{- printf "%s %s" .Name .Type.FullName }}
 		{{- end}}
 	{{ end }}
 }
