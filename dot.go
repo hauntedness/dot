@@ -119,9 +119,3 @@ func (t TypeImpl) FullName() string {
 	}
 	return result
 }
-
-// Package
-type Package struct {
-	Path string
-	Name string
-}
