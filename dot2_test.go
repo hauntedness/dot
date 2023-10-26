@@ -3,16 +3,16 @@ package dot
 import (
 	"testing"
 
-	"github.com/hauntedness/dot/play/doc/p"
+	"github.com/hauntedness/dot/internal/doc/play"
 )
 
 func TestLoadPackage(t *testing.T) {
-	pkg, err := LoadPackage("github.com/hauntedness/dot/play/doc/p", nil)
+	pkg, err := LoadPackage(play.Book{}, nil)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	ns, err := pkg.LookupStruct(p.Book{})
+	ns, err := pkg.LookupStruct(play.Book{})
 	if err != nil {
 		t.Error(err)
 		return
@@ -35,5 +35,4 @@ func TestLoadPackage(t *testing.T) {
 		t.Errorf("FieldTag %s", tag)
 		return
 	}
-
 }

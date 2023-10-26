@@ -1,5 +1,5 @@
 // This is the package comment.
-package p
+package play
 
 import (
 	json2 "encoding/json"

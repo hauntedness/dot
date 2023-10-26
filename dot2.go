@@ -15,11 +15,20 @@ import (
 // LoadPackage loads and returns the Go package named by the given patterns.
 //
 // Config specifies loading options; nil behaves the same as &packages.Config{Mode: math.MaxInt}.
-func LoadPackage(patterns string, config *packages.Config) (*Package, error) {
+//   - target can be directly a package path string
+//   - or a variable, then we use reflect.TypeOf(target) to get PkgPath
+func LoadPackage(target any, config *packages.Config) (*Package, error) {
 	if config == nil {
 		config = &packages.Config{Mode: math.MaxInt}
 	}
-	pkgs, err := packages.Load(config, patterns)
+	pattern := ""
+	if p, ok := target.(string); ok {
+		pattern = p
+	} else {
+		typ := reflect.TypeOf(target)
+		pattern = typ.PkgPath()
+	}
+	pkgs, err := packages.Load(config, pattern)
 	if err != nil {
 		return nil, fmt.Errorf("LoadPackage: %w", err)
 	}
@@ -64,15 +73,15 @@ func (p *Package) LookupStructById(pkg, structName string) (*NamedStruct, error)
 					return nil, fmt.Errorf("LookupStructById: %s is not a struct", structName)
 				}
 				result.Type = named
-				for _, f := range p.Package.Syntax {
-					if f.Pos() < ident.NamePos && ident.NamePos < f.End() {
+				for _, file := range p.Package.Syntax {
+					if file.Pos() < ident.NamePos && ident.NamePos < file.End() {
 						result.Filename = p.Package.Fset.File(ident.NamePos).Name()
-						result.File = f
+						result.File = file
 					}
 				}
-				for _, t := range p.docs.Types {
-					if t.Name == structName {
-						result.Doc = *t
+				for _, typ := range p.docs.Types {
+					if typ.Name == structName {
+						result.Doc = typ
 					}
 				}
 				break
@@ -89,7 +98,7 @@ func (p *Package) LookupStructById(pkg, structName string) (*NamedStruct, error)
 type NamedStruct struct {
 	// typ represent loaded go types
 	Type     *types.Named
-	Doc      doc.Type
+	Doc      *doc.Type
 	Filename string
 	File     *ast.File
 }
