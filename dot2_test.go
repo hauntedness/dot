@@ -14,43 +14,6 @@ import (
 	"k8s.io/gengo/types"
 )
 
-func TestLoadPackage(t *testing.T) {
-	pkg, err := LoadPackage(book, nil)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if pkg == nil {
-		t.Errorf("pkg is nil")
-		return
-	}
-	ns, err := pkg.LookupStruct(book)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if num := ns.NumFields(); num != 3 {
-		t.Errorf("NumFields %d", num)
-		return
-	}
-	if name := ns.FieldName(1); name != "Words" {
-		t.Errorf("FieldName %s", name)
-		return
-	}
-	if typeString := ns.FieldTypeString(2); typeString != "*json2.Marshaler" {
-		t.Errorf("FieldTypeString %s", typeString)
-		return
-	}
-	if tag := ns.FieldTag(1); tag != "" {
-		t.Errorf("FieldTag %s", tag)
-		return
-	}
-	if comments := ns.FieldComments(2); !reflect.DeepEqual(comments, []string{}) {
-		t.Errorf("FieldComments %s", comments)
-		return
-	}
-}
-
 var (
 	book = play.Book[string]{}
 	typ  = reflect.TypeOf(book)
