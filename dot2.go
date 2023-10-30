@@ -8,6 +8,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -36,9 +37,12 @@ func LoadPackage(target any, config *packages.Config) (*Package, error) {
 		return nil, fmt.Errorf("LoadPackage: %d packages found", len(pkgs))
 	}
 	pkg := pkgs[0]
-	docs, err := doc.NewFromFiles(pkg.Fset, pkg.Syntax, pkg.PkgPath)
+	docs, err := doc.NewFromFiles(pkg.Fset, pkg.Syntax, pkg.PkgPath, doc.AllDecls|doc.AllMethods|doc.PreserveAST)
 	if err != nil {
 		return nil, fmt.Errorf("LoadPackage: %w", err)
+	}
+	for _, t := range docs.Types {
+		fmt.Println(t.Doc)
 	}
 	return &Package{Package: pkg, docs: docs}, nil
 }
@@ -128,6 +132,14 @@ func (ns *NamedStruct) FieldType(i int) types.Type {
 
 func (ns *NamedStruct) FieldTag(i int) string {
 	return ns.Underlying().Tag(i)
+}
+
+func (ns *NamedStruct) FieldComments(i int) []string {
+	if len(ns.Doc.Vars) != ns.NumFields() {
+		return nil
+		panic("number of vars is not identical to number of fields")
+	}
+	return strings.Split(ns.Doc.Vars[i].Doc, "\n")
 }
 
 // FieldTypeString return the string repretension of field i

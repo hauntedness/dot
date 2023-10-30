@@ -16,7 +16,7 @@ func Greet(who string) {
 // book has its name and words
 //
 //go:generate go fmt ./...
-type Book struct {
+type Book[T any] struct {
 	// book name
 	Name string
 	// all words
