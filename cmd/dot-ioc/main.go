@@ -121,8 +121,16 @@ func CheckFuncProvider(fn *types.Func) error {
 	if !fn.IsValid() {
 		return fmt.Errorf("fn doesn't have directives")
 	}
-	if fn.Results().Len() > 2 {
+	if l := fn.Results().Len(); l > 2 || l < 1 {
 		return fmt.Errorf("Function Provider should be in form of fn(...) T or fn(...) (T, error)")
+	} else if l == 2 {
+		typ, err := fn.ResultType(1)
+		if err != nil {
+			return err
+		}
+		if !types.IsError(typ) {
+			return fmt.Errorf("Function Provider should be in form of fn(...) T or fn(...) (T, error)")
+		}
 	}
 	result, err := fn.Result(0)
 	if err != nil {
