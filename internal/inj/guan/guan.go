@@ -8,7 +8,7 @@ var _ int
 //go:ioc component
 type Guan struct{}
 
-//go:ioc --param name.provider="NewZhang"
+//go:ioc --param z.provider="NewZhang"
 func NewGuan(z zhang.Zhang) *Guan {
 	return &Guan{}
 }

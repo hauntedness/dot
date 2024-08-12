@@ -220,6 +220,7 @@ func SaveFuncProviderRequirement(fn *types.Func) error {
 			CmpPkgPath:  pkg1.Path(),
 			CmpPkgName:  pkg1.Name(),
 			CmpTypName:  v.TypeName(),
+			CmpName:     v.Name(),
 			CmpPvdName:  fn.ParamPvd(v.Name()),
 			//
 			CmpKind: int(v.TypeKind()),

@@ -14,7 +14,9 @@ type ProviderRequirement struct {
 	CmpPkgPath  string `db:"cmp_pkg_path"`
 	CmpPkgName  string `db:"cmp_pkg_name"`
 	CmpTypName  string `db:"cmp_typ_name"`
-	CmpKind     int    `db:"cmp_kind"`
+	// multiple params may have same type, thus use param name to distinct each other
+	CmpName string `db:"cmp_name"`
+	CmpKind int    `db:"cmp_kind"`
 	// go:ioc --param name.provider="NewLiu"
 	CmpPvdName string `db:"cmp_pvd_name"`
 	// go:ioc --param age.ident=123
@@ -33,9 +35,10 @@ create table provider_requirements (
 	cmp_pkg_path 	text,
 	cmp_pkg_name 	text,
 	cmp_typ_name 	text,
+	cmp_name 	    text,
 	cmp_kind     	integer,
 	cmp_pvd_name 	text,
-	CONSTRAINT UC_Provider_Requirements UNIQUE(pvd_pkg_path, pvd_func_name, pvd_kind, cmp_pkg_path, cmp_typ_name, cmp_kind, cmp_pvd_name)
+	CONSTRAINT UC_Provider_Requirements UNIQUE(pvd_pkg_path, pvd_func_name, pvd_kind, cmp_pkg_path, cmp_typ_name, cmp_kind, cmp_name)
 )
 `
 
@@ -48,16 +51,16 @@ const SqlDeleteProviderRequirementById = `
 		and cmp_pkg_path = ? 
 		and cmp_typ_name = ?
 		and cmp_kind = ?
-		and cmp_pvd_name = ?
+		and cmp_name = ?
 `
 
 const SqlInsertProviderRequirement = `
-	insert into provider_requirements(pvd_pkg_path, pvd_pkg_name, pvd_func_name, pvd_name, pvd_kind, cmp_pkg_path, cmp_pkg_name, cmp_typ_name, cmp_kind, cmp_pvd_name)
-	values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	insert into provider_requirements(pvd_pkg_path, pvd_pkg_name, pvd_func_name, pvd_name, pvd_kind, cmp_pkg_path, cmp_pkg_name, cmp_typ_name, cmp_name, cmp_kind, cmp_pvd_name)
+	values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 func SaveProviderRequirement(c *ProviderRequirement) error {
-	res, err := db.Exec(SqlDeleteProviderRequirementById, c.PvdPkgPath, c.PvdName, c.PvdKind, c.CmpPkgPath, c.CmpTypName, c.CmpKind, c.CmpPvdName)
+	res, err := db.Exec(SqlDeleteProviderRequirementById, c.PvdPkgPath, c.PvdName, c.PvdKind, c.CmpPkgPath, c.CmpTypName, c.CmpKind, c.CmpName)
 	if err != nil {
 		return err
 	}
@@ -66,7 +69,7 @@ func SaveProviderRequirement(c *ProviderRequirement) error {
 	res, err = db.Exec(
 		SqlInsertProviderRequirement,
 		c.PvdPkgPath, c.PvdPkgName, c.PvdFuncName, c.PvdName, c.PvdKind,
-		c.CmpPkgPath, c.CmpPkgName, c.CmpTypName, c.CmpKind, c.CmpPvdName,
+		c.CmpPkgPath, c.CmpPkgName, c.CmpTypName, c.CmpName, c.CmpKind, c.CmpPvdName,
 	)
 	if err != nil {
 		return fmt.Errorf("err: %w, record: %#v", err, c)
