@@ -296,8 +296,10 @@ func visit(ps *wire.ProviderSet, provider *store.Provider) error {
 						p = &provider
 					}
 				}
-				if count != 1 {
+				if count == 0 {
 					return fmt.Errorf("could not find provider for %#v", requirement)
+				} else if count > 1 {
+					return fmt.Errorf("found multiple providers having same name for %#v", requirement)
 				}
 				ps.AddProvider(p)
 				err = visit(ps, p)
