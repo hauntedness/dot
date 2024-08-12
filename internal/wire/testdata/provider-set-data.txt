@@ -1,0 +1,9 @@
+import liu "github.com/some/mod/liu"
+import guan "github.com/some/mod/guan"
+
+
+var  = wire.NewSet(
+	liu.NewLiu,
+	guan.NewGuan,
+	wire.Bind(new(liu.Namer), new(guan.Guan)),
+)
