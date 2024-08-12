@@ -31,6 +31,7 @@ create table providers (
 	pvd_func_name text,
 	pvd_name      text,
 	pvd_kind      text,
+	pvd_error     text,
 	cmp_pkg_path  text,
 	cmp_pkg_name  text,
 	cmp_typ_name  text,
@@ -49,23 +50,12 @@ const SqlDeleteProviderById = `
 		and cmp_kind = ?
 `
 
-const SqlInsertProvider = `
-	insert into providers(pvd_pkg_path, pvd_pkg_name, pvd_func_name, pvd_name, pvd_kind, cmp_pkg_path, cmp_pkg_name, cmp_typ_name, cmp_kind)
-	values(?, ?, ?, ?, ?, ?, ?, ?, ?)
-`
-
 func SaveProvider(c *Provider) error {
-	res1, err := db.Exec(SqlDeleteProviderById, c.PvdPkgPath, c.PvdFuncName, c.CmpPkgPath, c.CmpTypName, c.CmpKind)
+	_, err := db.Exec(SqlDeleteProviderById, c.PvdPkgPath, c.PvdFuncName, c.CmpPkgPath, c.CmpTypName, c.CmpKind)
 	if err != nil {
 		return err
 	}
-	_ = res1
-	res2, err := db.Exec(SqlInsertProvider, c.PvdPkgPath, c.PvdPkgName, c.PvdFuncName, c.PvdName, c.PvdKind, c.CmpPkgPath, c.CmpPkgName, c.CmpTypName, c.CmpKind)
-	if err != nil {
-		return err
-	}
-	_ = res2
-	return nil
+	return Insert(c, "providers")
 }
 
 // FindProviderByCmp

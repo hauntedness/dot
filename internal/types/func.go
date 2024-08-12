@@ -191,7 +191,7 @@ func (f *Func) PvdName() string {
 
 func (f *Func) ParamPvd(param string) string {
 	if settings, ok := f.paramSetttings[param]; ok {
-		return settings["provider"]
+		return strings.Trim(settings["provider"], "\"")
 	}
 	return ""
 }

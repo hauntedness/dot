@@ -39,11 +39,6 @@ const SqlCountComponentById = `
 		and t.cmp_name = ?
 `
 
-const SqlInsertComponent = `
-	insert into components(cmp_pkg_path, cmp_pkg_name, cmp_typ_name, cmp_name, cmp_kind)
-	values(?, ?, ?, ?, ?)
-`
-
 func SaveComponent(c *Component) error {
 	row := db.QueryRow(SqlCountComponentById, c.CmpPkgPath, c.CmpTypName, c.CmpName)
 	if err := row.Err(); err != nil {
@@ -55,11 +50,7 @@ func SaveComponent(c *Component) error {
 		return err
 	}
 	if n < 1 {
-		res, err := db.Exec(SqlInsertComponent, c.CmpPkgPath, c.CmpPkgName, c.CmpTypName, c.CmpName, c.CmpKind)
-		if err != nil {
-			return err
-		}
-		_ = res
+		return Insert(c, "components")
 	}
 	return nil
 }

@@ -1,9 +1,5 @@
 package store
 
-import (
-	"fmt"
-)
-
 // ProviderRequirement
 type ProviderRequirement struct {
 	PvdPkgPath  string `db:"pvd_pkg_path"`
@@ -19,8 +15,6 @@ type ProviderRequirement struct {
 	CmpKind int    `db:"cmp_kind"`
 	// go:ioc --param name.provider="NewLiu"
 	CmpPvdName string `db:"cmp_pvd_name"`
-	// go:ioc --param age.ident=123
-	CmpIdentValue string `db:"cmp_ident_value"`
 }
 
 // TableProviderRequirement
@@ -54,28 +48,13 @@ const SqlDeleteProviderRequirementById = `
 		and cmp_name = ?
 `
 
-const SqlInsertProviderRequirement = `
-	insert into provider_requirements(pvd_pkg_path, pvd_pkg_name, pvd_func_name, pvd_name, pvd_kind, cmp_pkg_path, cmp_pkg_name, cmp_typ_name, cmp_name, cmp_kind, cmp_pvd_name)
-	values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`
-
 func SaveProviderRequirement(c *ProviderRequirement) error {
 	res, err := db.Exec(SqlDeleteProviderRequirementById, c.PvdPkgPath, c.PvdName, c.PvdKind, c.CmpPkgPath, c.CmpTypName, c.CmpKind, c.CmpName)
 	if err != nil {
 		return err
 	}
 	_ = res
-
-	res, err = db.Exec(
-		SqlInsertProviderRequirement,
-		c.PvdPkgPath, c.PvdPkgName, c.PvdFuncName, c.PvdName, c.PvdKind,
-		c.CmpPkgPath, c.CmpPkgName, c.CmpTypName, c.CmpName, c.CmpKind, c.CmpPvdName,
-	)
-	if err != nil {
-		return fmt.Errorf("err: %w, record: %#v", err, c)
-	}
-	_ = res
-	return nil
+	return Insert(c, "provider_requirements")
 }
 
 const SqlFindProviderRequirementByCmpType = `
