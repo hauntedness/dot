@@ -1,6 +1,6 @@
 package yanyan
 
-//go:generate dot-ioc
+//go:generate digen
 var _ int
 
 //go:ioc component

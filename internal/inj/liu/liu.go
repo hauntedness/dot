@@ -9,7 +9,7 @@ import (
 	"github.com/hauntedness/dot/internal/inj/zhang/yanyan"
 )
 
-//go:generate dot-ioc
+//go:generate digen
 
 // Liu
 //

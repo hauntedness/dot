@@ -2,7 +2,7 @@ package zhang
 
 import "github.com/hauntedness/dot/internal/inj/zhang/yanyan"
 
-//go:generate dot-ioc
+//go:generate digen
 var _ int
 
 //go:ioc component

@@ -17,13 +17,13 @@ import (
 
 func main() {
 	store.Init()
-	path := flag.String("package", ".", "the package or dir to be scanned")
-	wireset := flag.Bool("wireset", false, "generate wire set")
+	path := flag.String("pkg", ".", "the package or dir to be scanned")
+	pset := flag.Bool("gen", false, "generate wire provider set")
 	flag.Parse()
 	if *path == "" {
 		log.Panic("Must specify the package flags or GOPACKAGE env when running without go generate.")
 	}
-	if ok1, ok2 := *wireset, os.Getenv("wireset"); ok1 || ok2 == "true" {
+	if ok1, ok2 := *pset, os.Getenv("gen_provider_set"); ok1 || ok2 == "true" {
 		err := GenerateProviderSet(*path)
 		if err != nil {
 			log.Panic(err)
@@ -37,7 +37,7 @@ func main() {
 		if err != nil {
 			log.Panic(err)
 		}
-		slog.Info(dir, "msg", "dot-ioc definition loading is finished.")
+		slog.Info(dir, "msg", "digen definition loading is finished.")
 	}
 }
 
@@ -51,6 +51,7 @@ func Generate(path string) error {
 	for _, fn := range c.funcs {
 		err = CheckFuncProvider(fn)
 		if err != nil {
+			slog.Debug("function is not a provider", "func", fn)
 			continue
 		}
 		err = SaveFuncProvider(fn)
@@ -119,22 +120,22 @@ func (c *Container) LoadProvider(pkg *packages.Package) error {
 
 func CheckFuncProvider(fn *types.Func) error {
 	if !fn.IsValid() {
-		return fmt.Errorf("fn doesn't have directives")
+		return fmt.Errorf("fn: %v. missing directives.", fn)
 	}
 	if l := fn.Results().Len(); l > 2 || l < 1 {
-		return fmt.Errorf("Function Provider should be in form of fn(...) T or fn(...) (T, error)")
+		return fmt.Errorf("fn: %v. incorrect number of results.", fn)
 	} else if l == 2 {
 		typ, err := fn.ResultType(1)
 		if err != nil {
 			return err
 		}
 		if !types.IsError(typ) {
-			return fmt.Errorf("Function Provider should be in form of fn(...) T or fn(...) (T, error)")
+			return fmt.Errorf("fn: %v. 2nd result type is not error", fn)
 		}
 	}
 	result, err := fn.Result(0)
 	if err != nil {
-		return err
+		return fmt.Errorf("provider should at least have one result. %w", err)
 	}
 	res, err := types.NewVar(result)
 	if err != nil {
@@ -150,7 +151,7 @@ func CheckFuncProvider(fn *types.Func) error {
 		pass = true
 	}
 	if !pass {
-		return fmt.Errorf("fn doesn't have correct return type. %v", fn)
+		return fmt.Errorf("1st result is not supported type. %v", fn)
 	}
 	return nil
 }
@@ -158,7 +159,7 @@ func CheckFuncProvider(fn *types.Func) error {
 func SaveFuncProvider(fn *types.Func) error {
 	result, err := fn.Result(0)
 	if err != nil {
-		return fmt.Errorf("provider should at least have one result. %w", err)
+		panic("result should be checked already")
 	}
 	res, err := types.NewVar(result)
 	if err != nil {

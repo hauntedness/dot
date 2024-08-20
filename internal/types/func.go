@@ -79,10 +79,11 @@ func (f *Func) ResultType(i int) (types.Type, error) {
 }
 
 func (f *Func) ReturnError() bool {
-	if f.Results().Len() != 2 {
+	results := f.Results()
+	if results.Len() != 2 {
 		return false
 	}
-	if typ, err := f.ResultType(1); err == nil && IsError(typ) {
+	if typ := results.At(1).Type(); IsError(typ) {
 		return false
 	}
 	return false
