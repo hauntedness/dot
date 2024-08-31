@@ -44,14 +44,13 @@ func main() {
 func Generate(path string) error {
 	pkg := types.Load(path)
 	c := &Container{}
-	err := c.LoadProvider(pkg)
+	err := c.LoadDefinitions(pkg)
 	if err != nil {
 		return err
 	}
 	for _, fn := range c.funcs {
 		err = CheckFuncProvider(fn)
 		if err != nil {
-			slog.Debug("function is not a provider", "func", fn)
 			continue
 		}
 		err = SaveFuncProvider(fn)
@@ -59,6 +58,12 @@ func Generate(path string) error {
 			return err
 		}
 		err = SaveFuncProviderRequirement(fn)
+		if err != nil {
+			return err
+		}
+	}
+	for _, impl := range c.implements {
+		err := SaveImplements(impl)
 		if err != nil {
 			return err
 		}
@@ -71,16 +76,31 @@ type Container struct {
 	funcs      []*types.Func
 	interfaces []*types.Interface
 	vars       []*types.Var
+	implements []*types.ImplementStmt
 }
 
-func (c *Container) LoadProvider(pkg *packages.Package) error {
-	commentMap := map[*ast.Ident][]string{}
+func (c *Container) LoadDefinitions(pkg *packages.Package) error {
+	directives := map[*ast.Ident][]string{}
 	for _, syntax := range pkg.Syntax {
 		comments := ast.NewCommentMap(pkg.Fset, syntax, syntax.Comments)
 		for _, decl := range syntax.Decls {
 			switch _decl := decl.(type) {
+			case *ast.GenDecl:
+				if len(_decl.Specs) != 1 {
+					continue
+				}
+				switch _decl := _decl.Specs[0].(type) {
+				case *ast.ValueSpec:
+					stmt, ok := types.NewImplementStmt(_decl, pkg)
+					if ok {
+						c.implements = append(c.implements, stmt)
+						ds := types.Directives(comments.Filter(decl), pkg)
+						stmt.SetDirectives(ds)
+						directives[_decl.Names[0]] = ds
+					}
+				}
 			case *ast.FuncDecl:
-				commentMap[_decl.Name] = types.Directives(comments.Filter(decl), pkg)
+				directives[_decl.Name] = types.Directives(comments.Filter(decl), pkg)
 				continue
 			default:
 				// omit other case
@@ -88,7 +108,7 @@ func (c *Container) LoadProvider(pkg *packages.Package) error {
 		}
 	}
 	// skip processing when no directives
-	if len(commentMap) == 0 {
+	if len(directives) == 0 {
 		return nil
 	}
 	for id, def := range pkg.TypesInfo.Defs {
@@ -97,21 +117,29 @@ func (c *Container) LoadProvider(pkg *packages.Package) error {
 		}
 		switch types.Kind(def) {
 		case types.KindFunc:
-			dd := commentMap[id]
+			dd := directives[id]
 			if len(dd) > 0 {
 				fn, err := types.NewFunc(def)
 				if err != nil {
 					return err
 				}
-				fn.SetDirectives(dd)
-				c.funcs = append(c.funcs, fn)
+				if list, ok := types.NewImplementStmtSlice(fn, pkg); ok {
+					for _, impl := range list {
+						impl.SetDirectives(dd)
+						c.implements = append(c.implements, impl)
+						slog.Debug("implements", "impl", impl)
+					}
+				} else {
+					fn.SetDirectives(dd)
+					c.funcs = append(c.funcs, fn)
+				}
 			}
 		case types.KindVar:
 			var1, err := types.NewVar(def)
 			if err != nil {
 				return err
 			}
-			var1.SetDirectives(commentMap[id])
+			var1.SetDirectives(directives[id])
 			c.vars = append(c.vars, var1)
 		}
 	}
@@ -120,22 +148,20 @@ func (c *Container) LoadProvider(pkg *packages.Package) error {
 
 func CheckFuncProvider(fn *types.Func) error {
 	if !fn.IsValid() {
-		return fmt.Errorf("fn: %v. missing directives.", fn)
+		return fmt.Errorf("fn: %v missing directives.", fn)
 	}
 	if l := fn.Results().Len(); l > 2 || l < 1 {
-		return fmt.Errorf("fn: %v. incorrect number of results.", fn)
+		return fmt.Errorf("fn: %v incorrect number of results.", fn)
 	} else if l == 2 {
-		typ, err := fn.ResultType(1)
-		if err != nil {
-			return err
-		}
-		if !types.IsError(typ) {
-			return fmt.Errorf("fn: %v. 2nd result type is not error", fn)
+		typ, ok := fn.ResultType(1)
+
+		if !ok || !types.IsError(typ) {
+			return fmt.Errorf("fn: %v 2nd result type is not error", fn)
 		}
 	}
-	result, err := fn.Result(0)
-	if err != nil {
-		return fmt.Errorf("provider should at least have one result. %w", err)
+	result, ok := fn.Result(0)
+	if !ok {
+		return fmt.Errorf("fn: %v should at least have one result.", fn)
 	}
 	res, err := types.NewVar(result)
 	if err != nil {
@@ -156,9 +182,26 @@ func CheckFuncProvider(fn *types.Func) error {
 	return nil
 }
 
+func SaveImplements(impl *types.ImplementStmt) error {
+	stmt := store.ImplementStmt{
+		IfacePkgPath: impl.IfacePkg().Path(),
+		IfaceName:    impl.IfaceName(),
+		CmpPkgPath:   impl.ImplPkg().Path(),
+		CmpTypName:   impl.ImplName(),
+		//
+		CmpKind: 0,
+	}
+	typeKind := types.TypeKindOf(impl.ImplType())
+	if impl.IsPointerImpl() {
+		typeKind = typeKind | types.TypeKindPointer
+	}
+	stmt.CmpKind = int(typeKind)
+	return store.SaveImplement(&stmt)
+}
+
 func SaveFuncProvider(fn *types.Func) error {
-	result, err := fn.Result(0)
-	if err != nil {
+	result, ok := fn.Result(0)
+	if !ok {
 		panic("result should be checked already")
 	}
 	res, err := types.NewVar(result)
@@ -260,17 +303,10 @@ func visit(ps *wire.ProviderSet, provider *store.Provider) error {
 	for _, requirement := range requirements {
 		// 如果是interface需要按名字查找, 因为类型和package并不匹配
 		if types.IsInterfaceKind(types.TypeKind(requirement.CmpKind)) {
-			if requirement.CmpPvdName == "" {
-				return fmt.Errorf("provide name must be specified for interface kind. %#v", requirement)
-			}
-			// TODO(j) 是否要继续验证类型?
-			providers, err := store.FindProviderByName(requirement.CmpPvdName)
+			provider, err := findInterfaceProvider(&requirement)
 			if err != nil {
 				return err
-			} else if len(providers) != 1 {
-				return fmt.Errorf("provider name should be unique when requiring a interface value. %#v", requirement)
 			}
-			provider := &providers[0]
 			ps.AddProvider(provider)
 			ps.AddBind(&requirement, provider)
 			err = visit(ps, provider)
@@ -324,4 +360,48 @@ func visit(ps *wire.ProviderSet, provider *store.Provider) error {
 		}
 	}
 	return nil
+}
+
+func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, error) {
+	checked := func(providers []store.Provider, err error) (*store.Provider, error) {
+		if err != nil {
+			return nil, err
+		}
+		if len(providers) != 1 {
+			return nil, fmt.Errorf("could not determine provider for interface kind. req: %#v, providers: %v", req, providers)
+		}
+		return &providers[0], nil
+	}
+	if req.CmpPvdName == "" {
+		//
+		implements, err := store.FindImplementsByInterface(req.CmpPkgPath, req.CmpTypName)
+		if err != nil {
+			return nil, err
+		}
+		if len(implements) != 1 {
+			return nil, fmt.Errorf("could not determine implementation for interface kind. req: %#v, implementations: %v", req, implements)
+		}
+		providers, err := store.FindProviderByComponent(implements[0].CmpPkgPath, implements[0].CmpTypName)
+		return checked(providers, err)
+	}
+	// TODO(j) 是否要继续验证类型?
+	providers, err := store.FindProviderByName(req.CmpPvdName)
+	cp := make([]store.Provider, 0, 1)
+	for _, provider := range providers {
+		impl := &store.ImplementStmt{
+			CmpPkgPath:   provider.CmpPkgPath,
+			CmpTypName:   provider.CmpTypName,
+			CmpKind:      provider.CmpKind,
+			IfacePkgPath: req.CmpPkgPath,
+			IfaceName:    req.CmpTypName,
+		}
+		implements, err := store.FindImplementsByImpl(impl)
+		if err != nil {
+			return nil, err
+		}
+		if len(implements) == 1 {
+			cp = append(cp, provider)
+		}
+	}
+	return checked(cp, err)
 }

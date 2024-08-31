@@ -22,6 +22,10 @@ type Provider struct {
 	CmpKind int `db:"cmp_kind"`
 }
 
+func (*Provider) TableName() string {
+	return "providers"
+}
+
 // TableProvider
 // 该表存储Provider的信息和它所能提供的component
 const TableProviders = `
@@ -55,7 +59,7 @@ func SaveProvider(c *Provider) error {
 	if err != nil {
 		return err
 	}
-	return Insert(c, "providers")
+	return Insert(c)
 }
 
 // FindProviderByCmp
@@ -79,6 +83,13 @@ func FindProviderByName(component string) ([]Provider, error) {
 //	select * from providers t where t.pvd_pkg_path = ?
 func FindProviderByPkg(pkg string) ([]Provider, error) {
 	return Select[Provider]("select * from providers t where t.pvd_pkg_path = ?", pkg)
+}
+
+// FindProviderByPkg
+//
+//	select * from providers t where t.pvd_pkg_path = ?
+func FindProviderByComponent(cmpPkg string, cmpName string) ([]Provider, error) {
+	return Select[Provider]("select * from providers t where t.cmp_pkg_path = ? and t.cmp_typ_name = ?", cmpPkg, cmpName)
 }
 
 func FindAllStartWith(pkg string) {

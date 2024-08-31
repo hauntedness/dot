@@ -17,6 +17,10 @@ type ProviderRequirement struct {
 	CmpPvdName string `db:"cmp_pvd_name"`
 }
 
+func (*ProviderRequirement) TableName() string {
+	return "provider_requirements"
+}
+
 // TableProviderRequirement
 // 该表存储Provider的信息和它所需要的所有的components
 const TableProviderRequirements = `
@@ -54,7 +58,7 @@ func SaveProviderRequirement(c *ProviderRequirement) error {
 		return err
 	}
 	_ = res
-	return Insert(c, "provider_requirements")
+	return Insert(c)
 }
 
 const SqlFindProviderRequirementByCmpType = `

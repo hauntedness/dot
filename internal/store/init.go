@@ -38,7 +38,7 @@ func Init() {
 }
 
 func initDB(db1 *sqlx.DB) error {
-	rows, err := db1.Query("SELECT name FROM sqlite_master WHERE type='table' and name in ('components', 'providers', 'provider_requirements')")
+	rows, err := db1.Query("SELECT name FROM sqlite_master WHERE type='table' and name in ('components', 'providers', 'provider_requirements', 'implement_stmts')")
 	if err != nil {
 		return err
 	}
@@ -47,6 +47,7 @@ func initDB(db1 *sqlx.DB) error {
 		"components":            TableComponents,
 		"providers":             TableProviders,
 		"provider_requirements": TableProviderRequirements,
+		"implement_stmts":       TableImplementStmts,
 	}
 	for rows.Next() {
 		var name string
@@ -69,7 +70,12 @@ func initDB(db1 *sqlx.DB) error {
 }
 
 func Clean() {
-	stmt := []string{"drop table components", "drop table providers", "drop table provider_requirements"}
+	stmt := []string{
+		"drop table components",
+		"drop table providers",
+		"drop table provider_requirements",
+		"drop table implement_stmts",
+	}
 	for i := range stmt {
 		_, err := db.Exec(stmt[i])
 		if err != nil {

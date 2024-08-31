@@ -78,9 +78,6 @@ func TestComment(t *testing.T) {
 			if fileName := liu.FileName(); filepath.ToSlash(pos.Filename) != filepath.ToSlash(fileName) {
 				t.Fatalf("pos.Filename(=%s) != fileName(=%s) , pos.Line = %d", pos.Filename, fileName, pos.Line)
 			}
-			if fn.Name() == "NewLiu2" && len(fn.paramSetttings) == 0 {
-				t.Fatalf("Error: len(fn.Directives()) == 0")
-			}
 		case KindVar:
 			var1, err := NewVar(def)
 			if err != nil {

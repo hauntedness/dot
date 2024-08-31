@@ -15,26 +15,35 @@ func Select[T any](query string, args ...interface{}) ([]T, error) {
 	return res, nil
 }
 
-type InsertOps struct {
-	TableName string
+func NamedSelect[T any](query string, args interface{}) ([]T, error) {
+	res := make([]T, 0, 10)
+	stmt, err := db.PrepareNamed(query)
+	if err != nil {
+		return nil, err
+	}
+	err = stmt.Select(&res, args)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
-func WithTableName(name string) func(*InsertOps) {
-	return func(io *InsertOps) {
-		io.TableName = name
-	}
+type Q map[string]any
+
+type ITable interface {
+	TableName() string
 }
 
 // Insert insert value to table
 //
 // T must be pointer to struct
-func Insert[T any](value *T, tableName string) error {
+func Insert(value ITable) error {
 	if value == nil {
 		return nil
 	}
 	sb := &strings.Builder{}
 	sb.WriteString("insert into ")
-	sb.WriteString(tableName)
+	sb.WriteString(value.TableName())
 	sb.WriteByte('(')
 	structValue := reflect.ValueOf(value).Elem()
 	structType := structValue.Type()

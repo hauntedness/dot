@@ -14,12 +14,13 @@ import (
 // Liu
 //
 // this directive is only for document purpose, it takes no effects
-// go:ioc component
+//
+//go:ioc component
 type Liu struct{}
 
 // NewLiu
 //
-//go:ioc
+//go:ioc provider
 func NewLiu(guan *guan.Guan) *Liu {
 	return &Liu{}
 }
@@ -33,7 +34,7 @@ func NewLiu2(name string, guan *guan.Guan) *http.Request {
 
 // NewLiu3
 //
-//go:ioc --param namer.provider=NewGuan
+//go:ioc provider
 func NewLiu3(namer Namer) *Liu {
 	return nil
 }
@@ -54,12 +55,16 @@ func (l *Liu) Name() string {
 // Namer is who has a name
 //
 // this directive is only for document purpose, it takes no effects
-// go:ioc component
+//
+//go:ioc component
 type Namer interface {
 	Name() string
 }
 
+//go:ioc implements
+var _ Namer = (*guan.Guan)(nil)
+
 // Liu3
 //
-//go:ioc --name=liu3
+//go:ioc provider --name=liu3
 var Liu3 *Liu = NewLiu(guan.NewGuan(zhang.NewZhang(yanyan.NewYanYan())))

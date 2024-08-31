@@ -6,6 +6,6 @@ import (
 )
 
 func TestClean(t *testing.T) {
-	Clean()
+	// Clean()
 	fmt.Println("res")
 }

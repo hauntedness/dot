@@ -62,20 +62,20 @@ func (f *Func) Results() *types.Tuple {
 	return f.sig.Results()
 }
 
-func (f *Func) Result(i int) (*types.Var, error) {
+func (f *Func) Result(i int) (*types.Var, bool) {
 	res := f.sig.Results()
 	if res == nil || res.Len() < i+1 {
-		return nil, fmt.Errorf("Func results length error for index=%d", i)
+		return nil, false
 	}
-	return res.At(i), nil
+	return res.At(i), true
 }
 
-func (f *Func) ResultType(i int) (types.Type, error) {
-	v, err := f.Result(i)
-	if err != nil {
-		return nil, err
+func (f *Func) ResultType(i int) (types.Type, bool) {
+	v, ok := f.Result(i)
+	if !ok {
+		return nil, false
 	}
-	return v.Type(), nil
+	return v.Type(), true
 }
 
 func (f *Func) ReturnError() bool {
@@ -137,48 +137,38 @@ func (f *Func) SetDirectives(directives []string) {
 	if len(f.paramSetttings) == 0 {
 		f.paramSetttings = map[string]map[string]string{}
 	}
-	for _, d := range directives {
-		directive := strings.Replace(d, "// go:ioc", "//go:ioc", 1)
-		args, ok := strings.CutPrefix(directive, "//go:ioc")
-		if !ok {
-			panic(fmt.Errorf("directive:%s has no valid prefix.", d))
-		}
-		args = strings.TrimSpace(args)
-		if len(args) == 0 {
-			continue
-		}
-		cmd := strings.Split(args, " ")
-		err := providerFlags.Parse(cmd)
-		if err != nil {
-			panic(err)
-		}
-		providerFlags.VisitAll(func(g *flag.Flag) {
-			// process name
-			if g.Name == "name" {
-				f.pvdName = g.Value.String()
+	dir := Directive{cmd: "provider", ds: directives, fs: flag.NewFlagSet("provider", flag.PanicOnError)}
+	dir.fs.String("name", "", "name of the provider")
+	dir.fs.String("param", "", "param settings of the provider")
+	err := dir.Parse(func(g *flag.Flag) {
+		// process name
+		if g.Name == "name" {
+			f.pvdName = g.Value.String()
+			return
+		} else if g.Name == "param" {
+			value := g.Value.String()
+			if value == "" {
 				return
-			} else if g.Name == "param" {
-				value := g.Value.String()
-				if value == "" {
-					return
-				}
-				// process command eg: --param name.provider="NewLiu2"
-				key, cmd, ok := strings.Cut(value, ".")
-				if !ok {
-					panic(fmt.Errorf("unknown param settings: %s", value))
-				}
-				key = strings.TrimSpace(key)
-				subkey, c, ok := strings.Cut(cmd, "=")
-				if !ok {
-					panic(fmt.Errorf("unknown param settings: %s", value))
-				}
-				subkey, c = strings.TrimSpace(subkey), strings.TrimSpace(c)
-				if len(f.paramSetttings[key]) == 0 {
-					f.paramSetttings[key] = map[string]string{}
-				}
-				f.paramSetttings[key][subkey] = c
 			}
-		})
+			// process command eg: --param name.provider="NewLiu2"
+			key, cmd, ok := strings.Cut(value, ".")
+			if !ok {
+				panic(fmt.Errorf("unknown param settings: %s", value))
+			}
+			key = strings.TrimSpace(key)
+			subkey, c, ok := strings.Cut(cmd, "=")
+			if !ok {
+				panic(fmt.Errorf("unknown param settings: %s", value))
+			}
+			subkey, c = strings.TrimSpace(subkey), strings.TrimSpace(c)
+			if len(f.paramSetttings[key]) == 0 {
+				f.paramSetttings[key] = map[string]string{}
+			}
+			f.paramSetttings[key][subkey] = c
+		}
+	})
+	if err != nil {
+		panic(err)
 	}
 	f.ready = true
 }

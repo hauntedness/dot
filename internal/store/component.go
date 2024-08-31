@@ -10,6 +10,10 @@ type Component struct {
 	CmpKind int
 }
 
+func (c *Component) TableName() string {
+	return "components"
+}
+
 // TableComponents
 // 该表存储每个Component的信息
 const TableComponents = `
@@ -50,7 +54,7 @@ func SaveComponent(c *Component) error {
 		return err
 	}
 	if n < 1 {
-		return Insert(c, "components")
+		return Insert(c)
 	}
 	return nil
 }
