@@ -1,7 +1,7 @@
 package main
 
 import (
-	"cmp"
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -11,7 +11,6 @@ import (
 
 	"github.com/hauntedness/dot/internal/store"
 	"github.com/hauntedness/dot/internal/types"
-	"github.com/hauntedness/dot/internal/wire"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -19,12 +18,14 @@ func main() {
 	store.Init()
 	path := flag.String("pkg", ".", "the package or dir to be scanned")
 	pset := flag.Bool("gen", false, "generate wire provider set")
+	label := flag.String("label", "", "generate wire provider set")
 	flag.Parse()
 	if *path == "" {
 		log.Panic("Must specify the package flags or GOPACKAGE env when running without go generate.")
 	}
 	if ok1, ok2 := *pset, os.Getenv("gen_provider_set"); ok1 || ok2 == "true" {
-		err := GenerateProviderSet(*path)
+		pg := &ProviderGen{label: *label}
+		err := pg.GenerateProviderSet(*path)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -46,6 +47,17 @@ func Generate(path string) error {
 	c := &Container{}
 	err := c.LoadDefinitions(pkg)
 	if err != nil {
+		return err
+	}
+	cleanup := func() error {
+		return errors.Join(
+			store.DeleteComponentByPkg(pkg.PkgPath),
+			store.DeleteImplementByPkg(pkg.PkgPath),
+			store.DeleteProviderByPkg(pkg.PkgPath),
+			store.DeleteProviderRequirementsByPkg(pkg.PkgPath),
+		)
+	}
+	if err := cleanup(); err != nil {
 		return err
 	}
 	for _, fn := range c.funcs {
@@ -146,6 +158,10 @@ func (c *Container) LoadDefinitions(pkg *packages.Package) error {
 	return nil
 }
 
+func CheckImplementStatementFunc(fn *types.Func) error {
+	return nil
+}
+
 func CheckFuncProvider(fn *types.Func) error {
 	if !fn.IsValid() {
 		return fmt.Errorf("fn: %v missing directives.", fn)
@@ -190,6 +206,7 @@ func SaveImplements(impl *types.ImplementStmt) error {
 		CmpTypName:   impl.ImplName(),
 		//
 		CmpKind: 0,
+		Labels:  impl.Labels(),
 	}
 	typeKind := types.TypeKindOf(impl.ImplType())
 	if impl.IsPointerImpl() {
@@ -220,6 +237,7 @@ func SaveFuncProvider(fn *types.Func) error {
 		CmpTypName:  res.TypeName(),
 		//
 		CmpKind: int(res.TypeKind()),
+		Labels:  fn.Labels(),
 	}
 	if fn.ReturnError() {
 		pvd.PvdError = 1
@@ -268,140 +286,11 @@ func SaveFuncProviderRequirement(fn *types.Func) error {
 			CmpPvdName:  fn.ParamPvd(v.Name()),
 			//
 			CmpKind: int(v.TypeKind()),
+			Labels:  fn.Labels(),
 		}
 		if err := store.SaveProviderRequirement(&pvd); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func GenerateProviderSet(pkg string) error {
-	pkg0 := types.Load(pkg)
-	providers, err := store.FindProviderByPkg(pkg0.PkgPath)
-	if err != nil {
-		return err
-	}
-	for _, provider := range providers {
-		ps := &wire.ProviderSet{Name: "Wire" + provider.PvdFuncName + "Set"}
-		ps.AddProvider(&provider)
-		err := visit(ps, &provider)
-		if err != nil {
-			return err
-		}
-		fmt.Println(ps.Build())
-	}
-	return nil
-}
-
-func visit(ps *wire.ProviderSet, provider *store.Provider) error {
-	//
-	requirements, err := store.FindProviderRequirements(provider)
-	if err != nil {
-		return err
-	}
-	for _, requirement := range requirements {
-		// 如果是interface需要按名字查找, 因为类型和package并不匹配
-		if types.IsInterfaceKind(types.TypeKind(requirement.CmpKind)) {
-			provider, err := findInterfaceProvider(&requirement)
-			if err != nil {
-				return err
-			}
-			ps.AddProvider(provider)
-			ps.AddBind(&requirement, provider)
-			err = visit(ps, provider)
-			if err != nil {
-				return err
-			}
-		} else {
-			providers, err := store.FindProviderByCmp(requirement.CmpPkgPath, requirement.CmpTypName, requirement.CmpKind)
-			if err != nil {
-				return err
-			}
-			if l := len(providers); l == 0 {
-				return fmt.Errorf("no providers found for %#v", requirement)
-			} else if l > 1 {
-				if requirement.CmpPvdName == "" {
-					return fmt.Errorf("found multiple providers, you must specify the provider name. %#v", requirement)
-				}
-				var p *store.Provider
-				var count int
-				for _, provider := range providers {
-					name := cmp.Or(provider.PvdName, provider.PvdFuncName)
-					if requirement.CmpPvdName == name {
-						count++
-						p = &provider
-					}
-				}
-				if count == 0 {
-					return fmt.Errorf("could not find provider for %#v", requirement)
-				} else if count > 1 {
-					return fmt.Errorf("found multiple providers having same name for %#v", requirement)
-				}
-				ps.AddProvider(p)
-				err = visit(ps, p)
-				if err != nil {
-					return err
-				}
-			} else if l == 1 {
-				provider := &providers[0]
-				if requirement.CmpPvdName != "" {
-					name := cmp.Or(provider.PvdName, provider.PvdFuncName)
-					if name != requirement.CmpPvdName {
-						return fmt.Errorf("could not found provider %s, please check the provide name.", requirement.CmpPvdName)
-					}
-				}
-				ps.AddProvider(provider)
-				err := visit(ps, provider)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, error) {
-	checked := func(providers []store.Provider, err error) (*store.Provider, error) {
-		if err != nil {
-			return nil, err
-		}
-		if len(providers) != 1 {
-			return nil, fmt.Errorf("could not determine provider for interface kind. req: %#v, providers: %v", req, providers)
-		}
-		return &providers[0], nil
-	}
-	if req.CmpPvdName == "" {
-		//
-		implements, err := store.FindImplementsByInterface(req.CmpPkgPath, req.CmpTypName)
-		if err != nil {
-			return nil, err
-		}
-		if len(implements) != 1 {
-			return nil, fmt.Errorf("could not determine implementation for interface kind. req: %#v, implementations: %v", req, implements)
-		}
-		providers, err := store.FindProviderByComponent(implements[0].CmpPkgPath, implements[0].CmpTypName)
-		return checked(providers, err)
-	}
-	// TODO(j) 是否要继续验证类型?
-	providers, err := store.FindProviderByName(req.CmpPvdName)
-	cp := make([]store.Provider, 0, 1)
-	for _, provider := range providers {
-		impl := &store.ImplementStmt{
-			CmpPkgPath:   provider.CmpPkgPath,
-			CmpTypName:   provider.CmpTypName,
-			CmpKind:      provider.CmpKind,
-			IfacePkgPath: req.CmpPkgPath,
-			IfaceName:    req.CmpTypName,
-		}
-		implements, err := store.FindImplementsByImpl(impl)
-		if err != nil {
-			return nil, err
-		}
-		if len(implements) == 1 {
-			cp = append(cp, provider)
-		}
-	}
-	return checked(cp, err)
 }

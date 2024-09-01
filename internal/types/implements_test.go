@@ -3,9 +3,9 @@ package types
 import (
 	"go/ast"
 	"log/slog"
+	"slices"
 	"testing"
 )
-
 
 func TestImplements(t *testing.T) {
 	pkg1 := Load("github.com/hauntedness/dot/internal/inj/liu2")
@@ -44,4 +44,18 @@ func TestImplements(t *testing.T) {
 			slog.Info("value spec", "stmt", stmtList, "ok", ok)
 		}
 	}
+}
+
+func TestImplementStmt_SetDirectives(t *testing.T) {
+	t.Run("", func(t *testing.T) {
+		impl := &ImplementStmt{}
+		impl.SetDirectives([]string{"//go:ioc implements --labels local,local2,local"})
+		equal := slices.Compare(impl.labels.labels, []string{"local", "local2"})
+		if equal != 0 {
+			t.Fatalf("unexpected results: %v", impl.labels)
+		}
+		if !impl.labels.Labeled("local") || !impl.labels.Labeled("local2") {
+			t.Fatalf("unexpected results: %v", impl.labels)
+		}
+	})
 }

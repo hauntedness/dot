@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/packages"
 )
@@ -17,7 +18,7 @@ import (
 type ImplementStmt struct {
 	namedInterface *types.Named
 	namedImpl      *types.Named
-	labels         []string
+	labels         Labels
 	isPointerImpl  bool
 }
 
@@ -50,18 +51,22 @@ func (s *ImplementStmt) IsPointerImpl() bool {
 }
 
 func (s *ImplementStmt) SetDirectives(directives []string) {
-	d := Directive{cmd: "implements", ds: directives, fs: flag.NewFlagSet("implements", flag.PanicOnError)}
-	d.fs.String("label", "", "label this uses.")
-	err := d.Parse(func(g *flag.Flag) {
-		if g.Name == "label" {
-			if label := g.Value.String(); label != "" {
-				s.labels = append(s.labels, label)
+	dir := Directive{cmd: "implements", ds: directives, fs: flag.NewFlagSet("implements", flag.PanicOnError)}
+	dir.fs.String("labels", "", "label this uses.")
+	err := dir.Parse(func(g *flag.Flag) {
+		if g.Name == "labels" {
+			if labels := g.Value.String(); labels != "" {
+				s.labels.Append(labels)
 			}
 		}
 	})
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (s *ImplementStmt) Labels() string {
+	return strings.Join(s.labels.labels, ",")
 }
 
 func AsInterface(_type ast.Expr, pkg *packages.Package) (*types.Named, bool) {

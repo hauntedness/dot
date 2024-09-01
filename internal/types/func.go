@@ -11,6 +11,7 @@ type Func struct {
 	fn             *types.Func
 	sig            *types.Signature
 	paramSetttings map[string]map[string]string
+	labels         Labels
 	pvdName        string
 	ready          bool
 }
@@ -140,11 +141,16 @@ func (f *Func) SetDirectives(directives []string) {
 	dir := Directive{cmd: "provider", ds: directives, fs: flag.NewFlagSet("provider", flag.PanicOnError)}
 	dir.fs.String("name", "", "name of the provider")
 	dir.fs.String("param", "", "param settings of the provider")
+	dir.fs.String("labels", "", "label that take this func into account.")
 	err := dir.Parse(func(g *flag.Flag) {
 		// process name
 		if g.Name == "name" {
 			f.pvdName = g.Value.String()
 			return
+		} else if g.Name == "labels" {
+			if labels := g.Value.String(); labels != "" {
+				f.labels.Append(labels)
+			}
 		} else if g.Name == "param" {
 			value := g.Value.String()
 			if value == "" {
@@ -178,6 +184,10 @@ func (f *Func) PvdName() string {
 		return f.pvdName
 	}
 	return f.Name()
+}
+
+func (f *Func) Labels() string {
+	return strings.Join(f.labels.labels, ",")
 }
 
 func (f *Func) ParamPvd(param string) string {

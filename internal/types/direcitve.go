@@ -3,6 +3,7 @@ package types
 import (
 	"flag"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -35,4 +36,12 @@ func (d Directive) Parse(fn func(*flag.Flag)) error {
 		d.fs.VisitAll(fn)
 	}
 	return nil
+}
+
+func AppendLabels(labelstr string, labels []string) []string {
+	ls := strings.Split(labelstr, ",")
+	for i := range ls {
+		ls[i] = strings.TrimSpace(ls[i])
+	}
+	return slices.Compact(slices.Sorted(slices.Values(append(labels, ls...))))
 }

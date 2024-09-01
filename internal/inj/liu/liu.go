@@ -27,6 +27,7 @@ func NewLiu(guan *guan.Guan) *Liu {
 
 // NewLiu2
 //
+// this is hard to implement, tap it out
 // turn off go:ioc --param name.ident="liu" --name high_recommended
 func NewLiu2(name string, guan *guan.Guan) *http.Request {
 	return nil
@@ -34,7 +35,7 @@ func NewLiu2(name string, guan *guan.Guan) *http.Request {
 
 // NewLiu3
 //
-//go:ioc provider
+//go:ioc provider --labels dev
 func NewLiu3(namer Namer) *Liu {
 	return nil
 }
@@ -66,5 +67,6 @@ var _ Namer = (*guan.Guan)(nil)
 
 // Liu3
 //
-//go:ioc provider --name=liu3
+// this is hard to implement, tap it out.
+// turn off go:ioc provider --name=liu3
 var Liu3 *Liu = NewLiu(guan.NewGuan(zhang.NewZhang(yanyan.NewYanYan())))

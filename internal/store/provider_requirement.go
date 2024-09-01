@@ -15,6 +15,7 @@ type ProviderRequirement struct {
 	CmpKind int    `db:"cmp_kind"`
 	// go:ioc --param name.provider="NewLiu"
 	CmpPvdName string `db:"cmp_pvd_name"`
+	Labels     string `db:"labels"`
 }
 
 func (*ProviderRequirement) TableName() string {
@@ -36,6 +37,7 @@ create table provider_requirements (
 	cmp_name 	    text,
 	cmp_kind     	integer,
 	cmp_pvd_name 	text,
+	labels          text,
 	CONSTRAINT UC_Provider_Requirements UNIQUE(pvd_pkg_path, pvd_func_name, pvd_kind, cmp_pkg_path, cmp_typ_name, cmp_kind, cmp_name)
 )
 `
@@ -78,4 +80,9 @@ const SqlFindProviderRequirementByCmpType = `
 //		and t.pvd_kind = ?
 func FindProviderRequirements(c *Provider) ([]ProviderRequirement, error) {
 	return Select[ProviderRequirement](SqlFindProviderRequirementByCmpType, c.PvdPkgPath, c.PvdFuncName, c.PvdKind)
+}
+
+func DeleteProviderRequirementsByPkg(pkgPath string) error {
+	_, err := db.Exec("delete from provider_requirements where cmp_pkg_path = ?", pkgPath)
+	return err
 }

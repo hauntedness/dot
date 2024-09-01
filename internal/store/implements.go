@@ -10,6 +10,7 @@ type ImplementStmt struct {
 	IfacePkgPath string `db:"iface_pkg_path"`
 	// name is the id field
 	IfaceName string `db:"iface_name"`
+	Labels    string `db:"labels"`
 }
 
 func (*ImplementStmt) TableName() string {
@@ -25,6 +26,7 @@ create table implement_stmts (
 	cmp_kind         integer,
 	iface_pkg_path   text,
 	iface_name       text,
+	labels           text,
 	CONSTRAINT UC_Provider UNIQUE(cmp_pkg_path, cmp_typ_name, cmp_kind, iface_pkg_path, iface_name)
 )
 `
@@ -49,6 +51,11 @@ func SaveImplement(impl *ImplementStmt) error {
 
 func DeleteImplement(impl *ImplementStmt) error {
 	_, err := db.NamedExec(SqlDeleteImplementStmtById, impl)
+	return err
+}
+
+func DeleteImplementByPkg(pkgPath string) error {
+	_, err := db.Exec("delete from implement_stmts where cmp_pkg_path = ?", pkgPath)
 	return err
 }
 

@@ -33,8 +33,9 @@ func Test_main2(t *testing.T) {
 }
 
 func TestGenerateProviderSet(t *testing.T) {
-	// path := reflect.TypeFor[liu.Liu]().PkgPath()
-	err := GenerateProviderSet("D:\\temp\\dot\\internal\\inj\\liu")
+	path := reflect.TypeFor[liu.Liu]().PkgPath()
+	pg := ProviderGen{label: "dev"}
+	err := pg.GenerateProviderSet(path)
 	if err != nil {
 		t.Fatal(err)
 	}

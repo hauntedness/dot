@@ -8,6 +8,7 @@ type Component struct {
 	CmpName    string
 	// struct or interface or primitive types
 	CmpKind int
+	Labels  string
 }
 
 func (c *Component) TableName() string {
@@ -23,6 +24,7 @@ create table components (
 	cmp_typ_name text,
 	cmp_name     text,
 	cmp_kind     integer,
+	labels       text,
   	CONSTRAINT UC_Component UNIQUE(cmp_pkg_path, cmp_typ_name, cmp_name)
 )
 `
@@ -57,4 +59,9 @@ func SaveComponent(c *Component) error {
 		return Insert(c)
 	}
 	return nil
+}
+
+func DeleteComponentByPkg(pkgPath string) error {
+	_, err := db.Exec("delete from components where cmp_pkg_path = ?", pkgPath)
+	return err
 }

@@ -19,7 +19,8 @@ type Provider struct {
 	CmpTypName string `db:"cmp_typ_name"`
 	// component kind can be found at [types.TypeKind]
 	// see /dot/internal/types/util.go
-	CmpKind int `db:"cmp_kind"`
+	CmpKind int    `db:"cmp_kind"`
+	Labels  string `db:"labels"`
 }
 
 func (*Provider) TableName() string {
@@ -40,6 +41,7 @@ create table providers (
 	cmp_pkg_name  text,
 	cmp_typ_name  text,
 	cmp_kind      integer,
+	labels        text,
 	CONSTRAINT UC_Provider UNIQUE(pvd_pkg_path, pvd_func_name, cmp_pkg_path, cmp_typ_name, cmp_kind)
 )
 `
@@ -87,7 +89,7 @@ func FindProviderByPkg(pkg string) ([]Provider, error) {
 
 // FindProviderByPkg
 //
-//	select * from providers t where t.pvd_pkg_path = ?
+//	select * from providers t where t.pvd_pkg_path = ? and t.cmp_typ_name = ?
 func FindProviderByComponent(cmpPkg string, cmpName string) ([]Provider, error) {
 	return Select[Provider]("select * from providers t where t.cmp_pkg_path = ? and t.cmp_typ_name = ?", cmpPkg, cmpName)
 }
@@ -96,4 +98,9 @@ func FindAllStartWith(pkg string) {
 	// find all provider
 	// find provider requirement
 	// find
+}
+
+func DeleteProviderByPkg(pkgPath string) error {
+	_, err := db.Exec("delete from providers where cmp_pkg_path = ?", pkgPath)
+	return err
 }
