@@ -87,20 +87,7 @@ func FindProviderByPkg(pkg string) ([]Provider, error) {
 	return Select[Provider]("select * from providers t where t.pvd_pkg_path = ?", pkg)
 }
 
-// FindProviderByPkg
-//
-//	select * from providers t where t.pvd_pkg_path = ? and t.cmp_typ_name = ?
-func FindProviderByComponent(cmpPkg string, cmpName string) ([]Provider, error) {
-	return Select[Provider]("select * from providers t where t.cmp_pkg_path = ? and t.cmp_typ_name = ?", cmpPkg, cmpName)
-}
-
-func FindAllStartWith(pkg string) {
-	// find all provider
-	// find provider requirement
-	// find
-}
-
-func DeleteProviderByPkg(pkgPath string) error {
-	_, err := db.Exec("delete from providers where cmp_pkg_path = ?", pkgPath)
+func DeleteProviderByPkg(pkg string) error {
+	_, err := db.Exec("delete from providers where cmp_pkg_path = ?", pkg)
 	return err
 }

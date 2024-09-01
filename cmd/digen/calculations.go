@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/hauntedness/dot/internal/store"
 	"github.com/hauntedness/dot/internal/types"
@@ -15,18 +16,15 @@ type ProviderGen struct {
 }
 
 func (pg *ProviderGen) GenerateProviderSet(pkg string) error {
-	pkg0 := types.Load(pkg)
-	providers, err := store.FindProviderByPkg(pkg0.PkgPath)
+	loaded := types.Load(pkg)
+	providers, err := pg.FindProviderByPkg(loaded.PkgPath)
 	if err != nil {
 		return err
 	}
 	for _, provider := range providers {
-		if ok := pg.checkLabel(provider.Labels); !ok {
-			continue
-		}
 		ps := &wire.ProviderSet{Name: "Wire" + provider.PvdFuncName + "Set"}
 		ps.AddProvider(&provider)
-		err := pg.visit(ps, &provider)
+		err := pg.walk(ps, &provider)
 		if err != nil {
 			return err
 		}
@@ -35,30 +33,27 @@ func (pg *ProviderGen) GenerateProviderSet(pkg string) error {
 	return nil
 }
 
-func (pg *ProviderGen) visit(ps *wire.ProviderSet, provider *store.Provider) error {
+func (pg *ProviderGen) walk(ps *wire.ProviderSet, provider *store.Provider) error {
 	//
-	requirements, err := store.FindProviderRequirements(provider)
+	requirements, err := pg.FindProviderRequirements(provider)
 	if err != nil {
 		return err
 	}
 	for _, requirement := range requirements {
-		if ok := pg.checkLabel(requirement.Labels); !ok {
-			continue
-		}
 		// 如果是interface需要按名字查找, 因为类型和package并不匹配
 		if types.IsInterfaceKind(types.TypeKind(requirement.CmpKind)) {
-			provider, err := findInterfaceProvider(&requirement)
+			provider, err := pg.findInterfaceProvider(&requirement)
 			if err != nil {
 				return err
 			}
 			ps.AddProvider(provider)
 			ps.AddBind(&requirement, provider)
-			err = pg.visit(ps, provider)
+			err = pg.walk(ps, provider)
 			if err != nil {
 				return err
 			}
 		} else {
-			providers, err := store.FindProviderByCmp(requirement.CmpPkgPath, requirement.CmpTypName, requirement.CmpKind)
+			providers, err := pg.FindProviderByCmp(requirement.CmpPkgPath, requirement.CmpTypName, requirement.CmpKind)
 			if err != nil {
 				return err
 			}
@@ -66,7 +61,7 @@ func (pg *ProviderGen) visit(ps *wire.ProviderSet, provider *store.Provider) err
 				return fmt.Errorf("no providers found for %#v", requirement)
 			} else if l > 1 {
 				if requirement.CmpPvdName == "" {
-					return fmt.Errorf("found multiple providers, you must specify the provider name. %#v", requirement)
+					return fmt.Errorf("could not determine providers. req: %v, providers: %v", requirement, providers)
 				}
 				var p *store.Provider
 				var count int
@@ -77,13 +72,11 @@ func (pg *ProviderGen) visit(ps *wire.ProviderSet, provider *store.Provider) err
 						p = &provider
 					}
 				}
-				if count == 0 {
-					return fmt.Errorf("could not find provider for %#v", requirement)
-				} else if count > 1 {
-					return fmt.Errorf("found multiple providers having same name for %#v", requirement)
+				if count != 1 {
+					return fmt.Errorf("could not determine providers. req: %v, providers: %v", requirement, providers)
 				}
 				ps.AddProvider(p)
-				err = pg.visit(ps, p)
+				err = pg.walk(ps, p)
 				if err != nil {
 					return err
 				}
@@ -96,7 +89,7 @@ func (pg *ProviderGen) visit(ps *wire.ProviderSet, provider *store.Provider) err
 					}
 				}
 				ps.AddProvider(provider)
-				err := pg.visit(ps, provider)
+				err := pg.walk(ps, provider)
 				if err != nil {
 					return err
 				}
@@ -117,7 +110,7 @@ func (pg *ProviderGen) checkLabel(requiredLabels string) bool {
 	return lb.Append(requiredLabels).Labeled(pg.label)
 }
 
-func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, error) {
+func (pg *ProviderGen) findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, error) {
 	checked := func(providers []store.Provider, err error) (*store.Provider, error) {
 		if err != nil {
 			return nil, err
@@ -129,7 +122,7 @@ func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, err
 	}
 	if req.CmpPvdName == "" {
 		//
-		implements, err := store.FindImplementsByInterface(req.CmpPkgPath, req.CmpTypName)
+		implements, err := pg.FindImplementsByInterface(req.CmpPkgPath, req.CmpTypName)
 		if err != nil {
 			return nil, err
 		}
@@ -137,12 +130,15 @@ func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, err
 			return nil, fmt.Errorf("could not determine implementation for interface kind. req: %v, implementations: %v", req, implements)
 		}
 		// find by implementation
-		providers1, err1 := store.FindProviderByComponent(implements[0].CmpPkgPath, implements[0].CmpTypName)
+		providers1, err1 := pg.FindProviderByCmp(implements[0].CmpPkgPath, implements[0].CmpTypName, implements[0].CmpKind)
 		// find by interface directly
-		providers2, err2 := store.FindProviderByComponent(req.CmpPkgPath, req.CmpTypName)
+		providers2, err2 := pg.FindProviderByCmp(req.CmpPkgPath, req.CmpTypName, req.CmpKind)
 		return checked(append(providers1, providers2...), errors.Join(err1, err2))
 	}
-	providers, err := store.FindProviderByName(req.CmpPvdName)
+	providers, err := pg.FindProviderByName(req.CmpPvdName)
+	if err != nil {
+		return nil, err
+	}
 	cp := make([]store.Provider, 0, 1)
 	for _, provider := range providers {
 		impl := &store.ImplementStmt{
@@ -152,7 +148,7 @@ func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, err
 			IfacePkgPath: req.CmpPkgPath,
 			IfaceName:    req.CmpTypName,
 		}
-		implements, err := store.FindImplementsByImpl(impl)
+		implements, err := pg.FindImplementsByImpl(impl)
 		if err != nil {
 			return nil, err
 		}
@@ -161,4 +157,64 @@ func findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, err
 		}
 	}
 	return checked(cp, err)
+}
+
+func (pg *ProviderGen) FindProviderByCmp(pkg string, typ string, kind int) ([]store.Provider, error) {
+	list, err := store.FindProviderByCmp(pkg, typ, kind)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(list, func(i store.Provider) bool {
+		return !pg.checkLabel(i.Labels)
+	}), nil
+}
+
+func (pg *ProviderGen) FindProviderByPkg(pkg string) ([]store.Provider, error) {
+	list, err := store.FindProviderByPkg(pkg)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(list, func(i store.Provider) bool {
+		return !pg.checkLabel(i.Labels)
+	}), nil
+}
+
+func (pg *ProviderGen) FindProviderByName(component string) ([]store.Provider, error) {
+	list, err := store.FindProviderByName(component)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(list, func(i store.Provider) bool {
+		return !pg.checkLabel(i.Labels)
+	}), nil
+}
+
+func (pg *ProviderGen) FindProviderRequirements(c *store.Provider) ([]store.ProviderRequirement, error) {
+	requirements, err := store.FindProviderRequirements(c)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(requirements, func(i store.ProviderRequirement) bool {
+		return !pg.checkLabel(i.Labels)
+	}), nil
+}
+
+func (pg *ProviderGen) FindImplementsByInterface(InterfacePkg string, InterfaceName string) ([]store.ImplementStmt, error) {
+	list, err := store.FindImplementsByInterface(InterfacePkg, InterfaceName)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(list, func(i store.ImplementStmt) bool {
+		return !pg.checkLabel(i.Labels)
+	}), nil
+}
+
+func (pg *ProviderGen) FindImplementsByImpl(impl *store.ImplementStmt) ([]store.ImplementStmt, error) {
+	list, err := store.FindImplementsByImpl(impl)
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(list, func(i store.ImplementStmt) bool {
+		return !pg.checkLabel(i.Labels)
+	}), nil
 }
