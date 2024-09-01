@@ -47,9 +47,9 @@ func TestImplements(t *testing.T) {
 }
 
 func TestImplementStmt_SetDirectives(t *testing.T) {
-	t.Run("", func(t *testing.T) {
+	t.Run("test implements argument 'labels' will be processed properly.", func(t *testing.T) {
 		impl := &ImplementStmt{}
-		impl.SetDirectives([]string{"//go:ioc implements --labels local,local2,local"})
+		impl.SetDirectives([]string{"//go:ioc implements --labels local,local2,local,local,local"})
 		equal := slices.Compare(impl.labels.labels, []string{"local", "local2"})
 		if equal != 0 {
 			t.Fatalf("unexpected results: %v", impl.labels)
