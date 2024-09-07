@@ -55,9 +55,7 @@ func (s *ImplementStmt) SetDirectives(directives []string) {
 	dir.fs.String("labels", "", "label this uses.")
 	err := dir.Parse(func(g *flag.Flag) {
 		if g.Name == "labels" {
-			if labels := g.Value.String(); labels != "" {
-				s.labels.Append(labels)
-			}
+			s.labels.Append(g.Value.String())
 		}
 	})
 	if err != nil {

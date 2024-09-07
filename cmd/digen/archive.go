@@ -14,7 +14,7 @@ import (
 //  2. 处理interface类型的component
 func (c *Container) Component() error {
 	for _, st := range c.structs {
-		if len(st.Directives()) == 0 {
+		if !st.IsComponent() {
 			continue
 		}
 		pkg := st.Pkg()

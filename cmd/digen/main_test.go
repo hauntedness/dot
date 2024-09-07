@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"os"
 	"reflect"
@@ -12,6 +13,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	store.Init()
 	os.Exit(m.Run())
 }
@@ -29,14 +31,5 @@ func Test_main2(t *testing.T) {
 	err := Generate(path)
 	if err != nil {
 		log.Panic(err)
-	}
-}
-
-func TestGenerateProviderSet(t *testing.T) {
-	path := reflect.TypeFor[liu.Liu]().PkgPath()
-	pg := ProviderGen{label: "dev"}
-	err := pg.GenerateProviderSet(path)
-	if err != nil {
-		t.Fatal(err)
 	}
 }

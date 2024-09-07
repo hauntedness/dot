@@ -148,9 +148,7 @@ func (f *Func) SetDirectives(directives []string) {
 			f.pvdName = g.Value.String()
 			return
 		} else if g.Name == "labels" {
-			if labels := g.Value.String(); labels != "" {
-				f.labels.Append(labels)
-			}
+			f.labels.Append(g.Value.String())
 		} else if g.Name == "param" {
 			value := g.Value.String()
 			if value == "" {

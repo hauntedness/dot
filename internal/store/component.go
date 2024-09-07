@@ -25,7 +25,7 @@ create table components (
 	cmp_name     text,
 	cmp_kind     integer,
 	labels       text,
-  	CONSTRAINT UC_Component UNIQUE(cmp_pkg_path, cmp_typ_name, cmp_name)
+  	CONSTRAINT UC_Component UNIQUE(cmp_pkg_path, cmp_typ_name)
 )
 `
 
@@ -34,7 +34,6 @@ const SqlFindComponentById = `
 	where 1 = 1
 		and t.cmp_pkg_path = ? 
 		and t.cmp_typ_name = ? 
-		and t.cmp_name = ?
 `
 
 const SqlCountComponentById = `
@@ -42,11 +41,10 @@ const SqlCountComponentById = `
 	where 1 = 1
 		and t.cmp_pkg_path = ? 
 		and t.cmp_typ_name = ? 
-		and t.cmp_name = ?
 `
 
 func SaveComponent(c *Component) error {
-	row := db.QueryRow(SqlCountComponentById, c.CmpPkgPath, c.CmpTypName, c.CmpName)
+	row := db.QueryRow(SqlCountComponentById, c.CmpPkgPath, c.CmpTypName)
 	if err := row.Err(); err != nil {
 		return err
 	}

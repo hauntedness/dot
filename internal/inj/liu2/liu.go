@@ -20,3 +20,20 @@ func (g *Guan2) Implements() Namer {
 type Namer interface {
 	Name() string
 }
+
+// PkgAAAProviderSet (A0,A1,A2)
+// PkgBBBProviderSet (B0,B1,B2)
+
+type (
+	Open  struct{}
+	Close struct{}
+	Put   struct{}
+)
+
+//go:ioc component --name box
+type Box struct {
+	NoName string `wire:"-"`
+	open   Open
+	close  Close
+	put    Put
+}

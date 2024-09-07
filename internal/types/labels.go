@@ -10,6 +10,9 @@ type Labels struct {
 }
 
 func (l *Labels) Append(labels string) *Labels {
+	if labels == "" {
+		return l
+	}
 	ls := strings.Split(labels, ",")
 	for i := range ls {
 		ls[i] = strings.TrimSpace(ls[i])

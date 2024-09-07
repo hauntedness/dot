@@ -2,10 +2,12 @@ package wire
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/hauntedness/dot/internal/store"
+	"github.com/hauntedness/dot/internal/types"
 )
 
 type bindDef struct {
@@ -16,17 +18,24 @@ type bindDef struct {
 type ProviderSet struct {
 	builder   strings.Builder
 	Name      string //
+	structDef *types.Struct
 	providers []*store.Provider
 	binds     []bindDef
 	imports   map[string]string // map[pkg_name]pkg_pkg_path
 }
 
-func (wb *ProviderSet) AddProvider(pvd *store.Provider) {
-	wb.resolvePkg(pvd.CmpPkgPath, pvd.CmpPkgName)
-	wb.providers = append(wb.providers, pvd)
+func (ps *ProviderSet) AddProvider(pvd *store.Provider) {
+	ps.resolvePkg(pvd.CmpPkgPath, pvd.CmpPkgName)
+	ps.providers = append(ps.providers, pvd)
+}
+
+func (ps *ProviderSet) SetStruct(st *types.Struct) {
+	ps.resolvePkg("github.com/google/wire", "wire")
+	ps.structDef = st
 }
 
 func (ps *ProviderSet) AddBind(dep *store.ProviderRequirement, pvd *store.Provider) {
+	ps.resolvePkg("github.com/google/wire", "wire")
 	ps.resolvePkg(dep.CmpPkgPath, dep.CmpPkgName)
 	ps.resolvePkg(pvd.CmpPkgPath, pvd.CmpPkgName)
 	ps.binds = append(ps.binds, bindDef{pvd: pvd, dep: dep})
@@ -42,6 +51,10 @@ func (ps *ProviderSet) Build() string {
 	// write empty line for pretty look
 	fmt.Fprintf(&ps.builder, "\n\n")
 	ps.writeDeclarationStart()
+	if ps.structDef != nil {
+		ps.writeStruct(ps.structDef)
+	}
+	ps.compactProviders()
 	for _, pvd := range ps.providers {
 		ps.writeFuncProvider(pvd)
 	}
@@ -50,6 +63,16 @@ func (ps *ProviderSet) Build() string {
 	}
 	ps.writeDeclarationEnd()
 	return (&ps.builder).String()
+}
+
+func (ps *ProviderSet) compactProviders() {
+	type tp = *store.Provider
+	list := ps.providers
+	slices.SortFunc(list, func(a, b tp) int { return a.Compare(b) })
+	list = slices.CompactFunc(list, func(a, b tp) bool {
+		return a.PvdPkgPath == b.PvdPkgPath && a.PvdOriName == b.PvdOriName
+	})
+	ps.providers = list
 }
 
 func (ps *ProviderSet) writeDeclarationStart() {
@@ -64,6 +87,10 @@ func (ps *ProviderSet) writeFuncProvider(pvd *store.Provider) {
 	pkg_name := ps.resolvePkg(pvd.PvdPkgPath, pvd.PvdPkgName)
 	//
 	(&ps.builder).WriteString("\t" + pkg_name + "." + pvd.PvdName + ",\n")
+}
+
+func (ps *ProviderSet) writeStruct(st *types.Struct) {
+	fmt.Fprintf(&ps.builder, "\twire.Struct(new(%s), \"*\"),\n", st.Name())
 }
 
 // WriteBind is used to write wire.Bind method for interface components

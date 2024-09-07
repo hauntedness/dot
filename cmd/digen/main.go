@@ -11,25 +11,18 @@ import (
 
 	"github.com/hauntedness/dot/internal/store"
 	"github.com/hauntedness/dot/internal/types"
+	"github.com/hauntedness/dot/pkg/digen"
 	"golang.org/x/tools/go/packages"
 )
 
 func main() {
 	store.Init()
 	path := flag.String("pkg", ".", "the package or dir to be scanned")
-	pset := flag.Bool("gen", false, "generate wire provider set")
+	cmdX := flag.String("cmd", "scan", "command can be 'scan' or 'func' or 'sctruct'.")
 	label := flag.String("label", "", "generate wire provider set")
 	flag.Parse()
-	if *path == "" {
-		log.Panic("Must specify the package flags or GOPACKAGE env when running without go generate.")
-	}
-	if ok1, ok2 := *pset, os.Getenv("gen_provider_set"); ok1 || ok2 == "true" {
-		pg := &ProviderGen{label: *label}
-		err := pg.GenerateProviderSet(*path)
-		if err != nil {
-			log.Panic(err)
-		}
-	} else {
+	switch *cmdX {
+	case "scan":
 		err := Generate(*path)
 		if err != nil {
 			log.Panic(err)
@@ -39,6 +32,18 @@ func main() {
 			log.Panic(err)
 		}
 		slog.Info(dir, "msg", "digen definition loading is finished.")
+	case "func":
+		pg := digen.NewProviderSetGen(*label)
+		err := pg.GenerateFromFuncPkg(*path)
+		if err != nil {
+			log.Panic(err)
+		}
+	case "struct":
+		pg := digen.NewProviderSetGen(*label)
+		err := pg.GenerateFromStructPkg(*path)
+		if err != nil {
+			log.Panic(err)
+		}
 	}
 }
 
@@ -54,7 +59,7 @@ func Generate(path string) error {
 			store.DeleteComponentByPkg(pkg.PkgPath),
 			store.DeleteImplementByPkg(pkg.PkgPath),
 			store.DeleteProviderByPkg(pkg.PkgPath),
-			store.DeleteProviderRequirementsByPkg(pkg.PkgPath),
+			store.DeleteProviderRequirementByPkg(pkg.PkgPath),
 		)
 	}
 	if err := cleanup(); err != nil {
@@ -227,14 +232,14 @@ func SaveFuncProvider(fn *types.Func) error {
 	}
 	pkg := fn.Pkg()
 	pvd := store.Provider{
-		PvdPkgPath:  pkg.Path(),
-		PvdPkgName:  pkg.Name(),
-		PvdFuncName: fn.Name(),
-		PvdName:     fn.PvdName(),
-		PvdKind:     fn.Kind(),
-		CmpPkgPath:  res.TypePkg().Path(),
-		CmpPkgName:  res.TypePkg().Name(),
-		CmpTypName:  res.TypeName(),
+		PvdPkgPath: pkg.Path(),
+		PvdPkgName: pkg.Name(),
+		PvdOriName: fn.Name(),
+		PvdName:    fn.PvdName(),
+		PvdKind:    fn.Kind(),
+		CmpPkgPath: res.TypePkg().Path(),
+		CmpPkgName: res.TypePkg().Name(),
+		CmpTypName: res.TypeName(),
 		//
 		CmpKind: int(res.TypeKind()),
 		Labels:  fn.Labels(),
@@ -274,16 +279,16 @@ func SaveFuncProviderRequirement(fn *types.Func) error {
 		}
 		pkg, pkg1 := fn.Pkg(), v.TypePkg()
 		pvd := store.ProviderRequirement{
-			PvdPkgPath:  pkg.Path(),
-			PvdPkgName:  pkg.Name(),
-			PvdFuncName: fn.Name(),
-			PvdName:     fn.Name(),
-			PvdKind:     fn.Kind(),
-			CmpPkgPath:  pkg1.Path(),
-			CmpPkgName:  pkg1.Name(),
-			CmpTypName:  v.TypeName(),
-			CmpName:     v.Name(),
-			CmpPvdName:  fn.ParamPvd(v.Name()),
+			PvdPkgPath: pkg.Path(),
+			PvdPkgName: pkg.Name(),
+			PvdOriName: fn.Name(),
+			PvdName:    fn.Name(),
+			PvdKind:    fn.Kind(),
+			CmpPkgPath: pkg1.Path(),
+			CmpPkgName: pkg1.Name(),
+			CmpTypName: v.TypeName(),
+			CmpName:    v.Name(),
+			CmpPvdName: fn.ParamPvd(v.Name()),
 			//
 			CmpKind: int(v.TypeKind()),
 			Labels:  fn.Labels(),

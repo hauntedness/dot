@@ -16,7 +16,9 @@ import (
 // this directive is only for document purpose, it takes no effects
 //
 //go:ioc component
-type Liu struct{}
+type Liu struct {
+	_ *guan.Guan
+}
 
 // NewLiu
 //

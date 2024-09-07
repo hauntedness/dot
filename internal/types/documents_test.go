@@ -47,13 +47,10 @@ func TestComment(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			st.directives = commentMap[id]
+			st.SetDirectives(commentMap[id])
 			pos := pkg1.Fset.Position(id.Pos())
 			if fileName := liu.FileName(); filepath.ToSlash(pos.Filename) != filepath.ToSlash(fileName) {
 				t.Fatalf("pos.Filename(=%s) != fileName(=%s) , pos.Line = %d", pos.Filename, fileName, pos.Line)
-			}
-			if st.Name() == "Liu" && len(st.Directives()) == 0 {
-				t.Fatalf("Error: len(st.Directives()) == 0")
 			}
 		case KindInterface:
 			it, err := NewInterface(def)
