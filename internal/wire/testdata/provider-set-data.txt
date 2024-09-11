@@ -1,9 +1,10 @@
-import liu "github.com/some/mod/liu"
 import guan "github.com/some/mod/guan"
+import liu "github.com/some/mod/liu"
+import wire "github.com/google/wire"
 
 
 var  = wire.NewSet(
-	liu.NewLiu,
 	guan.NewGuan,
+	liu.NewLiu,
 	wire.Bind(new(liu.Namer), new(guan.Guan)),
 )
