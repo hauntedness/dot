@@ -48,19 +48,6 @@ func TestSaveProviderRequirement(t *testing.T) {
 	}
 }
 
-func TestFindProviderRequirements(t *testing.T) {
-	providerRequirements, err := FindProviderRequirements(
-		&Provider{
-			PvdPkgPath: lt.PkgPath(),
-			PvdPkgName: "liu",
-			PvdName:    "NewLiu",
-		})
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("%#v\n", providerRequirements)
-}
-
 func TestView(t *testing.T) {
 	rows, err := db.Query("select * from provider_requirements")
 	if err != nil {

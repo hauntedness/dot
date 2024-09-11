@@ -18,6 +18,9 @@ func (pg *ProviderGen) GenerateFromStruct(st *types.Struct) error {
 		if ok && tag == "-" {
 			continue
 		}
+		if field.Name() == "_" {
+			continue
+		}
 		pkg, typ, kind := field.TypePkg().Path(), field.TypeName(), int(field.TypeKind())
 		providers, err := pg.FindProviderByCmp(pkg, typ, kind)
 		if err != nil {

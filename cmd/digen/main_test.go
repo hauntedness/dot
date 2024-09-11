@@ -7,8 +7,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hauntedness/dot/internal/inj/guan"
 	"github.com/hauntedness/dot/internal/inj/liu"
-	"github.com/hauntedness/dot/internal/inj/liu2"
+	"github.com/hauntedness/dot/internal/inj/zhang/yanyan"
 	"github.com/hauntedness/dot/internal/store"
 )
 
@@ -20,15 +21,23 @@ func TestMain(m *testing.M) {
 
 func Test_main(t *testing.T) {
 	path := reflect.TypeFor[liu.Liu]().PkgPath()
-	err := Generate(path)
+	err := Scan(path)
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
 func Test_main2(t *testing.T) {
-	path := reflect.TypeFor[liu2.Guan2]().PkgPath()
-	err := Generate(path)
+	path := reflect.TypeFor[guan.Guan]().PkgPath()
+	err := Scan(path)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+func Test_main3(t *testing.T) {
+	path := reflect.TypeFor[yanyan.YanYan]().PkgPath()
+	err := Scan(path)
 	if err != nil {
 		log.Panic(err)
 	}

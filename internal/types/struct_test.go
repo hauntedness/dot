@@ -14,12 +14,25 @@ func TestStruct_String(t *testing.T) {
 		if err != nil {
 			continue
 		}
+		st.SetDirectives([]string{"//go:ioc component --wire"})
 		fmt.Println(
 			st.typeName.String(),
 			st.typeName.Name(),
 			st.typeName.IsAlias(),
 			st.named.String(),
 			st.ParentScope(),
+			st.autowire,
 		)
+		if st.Name() == "Liu" {
+			fmt.Printf("autowire:%v\n", st.autowire)
+		}
+	}
+}
+
+func TestStruct_Doc(t *testing.T) {
+	st := &Struct{}
+	st.SetDirectives([]string{"//go:ioc component --wire"})
+	if !st.autowire {
+		t.Fatalf("autowire:%v\n", st.autowire)
 	}
 }

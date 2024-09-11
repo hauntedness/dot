@@ -9,6 +9,10 @@ func (g *Guan2) Name() string {
 	panic("unimplemented")
 }
 
+func NewGuan2() *Guan2 {
+	return nil
+}
+
 // digen will treat this as implement statement
 //
 //go:ioc implements

@@ -2,6 +2,7 @@ package wire
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -45,7 +46,8 @@ func (ps *ProviderSet) Build() string {
 	if ps.imports == nil {
 		ps.imports = map[string]string{}
 	}
-	for name, pkg := range ps.imports {
+	for _, name := range slices.Sorted(maps.Keys(ps.imports)) {
+		pkg := ps.imports[name]
 		fmt.Fprintf(&ps.builder, "import %s %s\n", name, strconv.Quote(pkg))
 	}
 	// write empty line for pretty look
@@ -99,7 +101,11 @@ func (ps *ProviderSet) writeInterfaceBind(dep *store.ProviderRequirement, pvd *s
 	interface_pkg_name := ps.resolvePkg(dep.CmpPkgPath, dep.CmpPkgName)
 	component_pkg_name := ps.resolvePkg(pvd.CmpPkgPath, pvd.CmpPkgName)
 	// eg "wire.Bind(new(liu.Namer), new(guan.Guan)),"
-	fmt.Fprintf((&ps.builder), "\twire.Bind(new(%s.%s), new(%s.%s)),\n", interface_pkg_name, dep.CmpTypName, component_pkg_name, pvd.CmpTypName)
+	star := ""
+	if types.IsStructPointerKind(types.TypeKind(pvd.CmpKind)) {
+		star = "*"
+	}
+	fmt.Fprintf((&ps.builder), "\twire.Bind(new(%s.%s), new(%s%s.%s)),\n", interface_pkg_name, dep.CmpTypName, star, component_pkg_name, pvd.CmpTypName)
 }
 
 // resolvePkg load package path to import map and also handle conflicts on import name

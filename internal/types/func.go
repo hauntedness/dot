@@ -14,6 +14,7 @@ type Func struct {
 	labels         Labels
 	pvdName        string
 	ready          bool
+	autowire       bool
 }
 
 func NewFunc(obj types.Object) (*Func, error) {
@@ -138,8 +139,9 @@ func (f *Func) SetDirectives(directives []string) {
 	if len(f.paramSetttings) == 0 {
 		f.paramSetttings = map[string]map[string]string{}
 	}
-	dir := Directive{cmd: "provider", ds: directives, fs: flag.NewFlagSet("provider", flag.PanicOnError)}
+	dir := Directive{cmd: "provider", docs: directives, fs: flag.NewFlagSet("provider", flag.PanicOnError)}
 	dir.fs.String("name", "", "name of the provider")
+	dir.fs.Bool("wire", false, "whether generate wire definition for this function.")
 	dir.fs.String("param", "", "param settings of the provider")
 	dir.fs.String("labels", "", "label that take this func into account.")
 	err := dir.Parse(func(g *flag.Flag) {
@@ -147,6 +149,8 @@ func (f *Func) SetDirectives(directives []string) {
 		if g.Name == "name" {
 			f.pvdName = g.Value.String()
 			return
+		} else if g.Name == "wire" {
+			f.autowire = true
 		} else if g.Name == "labels" {
 			f.labels.Append(g.Value.String())
 		} else if g.Name == "param" {

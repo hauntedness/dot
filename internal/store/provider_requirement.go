@@ -67,7 +67,7 @@ const SqlFindProviderRequirementByCmpType = `
 	select * from provider_requirements t 
 	where 1 = 1
 		and t.pvd_pkg_path = ?
-		and t.pvd_name = ?
+		and t.pvd_ori_name = ?
 		and t.pvd_kind = ?
 `
 
@@ -83,6 +83,6 @@ func FindProviderRequirements(c *Provider) ([]ProviderRequirement, error) {
 }
 
 func DeleteProviderRequirementByPkg(pkgPath string) error {
-	_, err := db.Exec("delete from provider_requirements where cmp_pkg_path = ?", pkgPath)
+	_, err := db.Exec("delete from provider_requirements where pvd_pkg_path = ?", pkgPath)
 	return err
 }

@@ -54,15 +54,10 @@ func DeleteImplement(impl *ImplementStmt) error {
 	return err
 }
 
-func DeleteImplementByPkg(pkgPath string) error {
-	_, err := db.Exec("delete from implement_stmts where cmp_pkg_path = ?", pkgPath)
-	return err
-}
-
-func FindImplementsByInterface(InterfacePkg string, InterfaceName string) ([]ImplementStmt, error) {
+func FindImplementsByInterface(interfacePackage string, interfaceName string) ([]ImplementStmt, error) {
 	return NamedSelect[ImplementStmt](
 		"select * from implement_stmts where iface_pkg_path = :pkg and iface_name = :name",
-		Q{"pkg": InterfacePkg, "name": InterfaceName},
+		Q{"pkg": interfacePackage, "name": interfaceName},
 	)
 }
 

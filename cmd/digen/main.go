@@ -8,6 +8,7 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/hauntedness/dot/internal/store"
 	"github.com/hauntedness/dot/internal/types"
@@ -18,12 +19,14 @@ import (
 func main() {
 	store.Init()
 	path := flag.String("pkg", ".", "the package or dir to be scanned")
-	cmdX := flag.String("cmd", "scan", "command can be 'scan' or 'func' or 'sctruct'.")
+	cmdX := flag.String("cmd", "scan", "command can be 'scan' or 'wire'.")
+	wire := flag.String("wire", "all", "wire option. can be 'func' or 'struct' or 'all'")
 	label := flag.String("label", "", "generate wire provider set")
 	flag.Parse()
-	switch *cmdX {
+	var err error
+	switch strings.ToLower(*cmdX) {
 	case "scan":
-		err := Generate(*path)
+		err := Scan(*path)
 		if err != nil {
 			log.Panic(err)
 		}
@@ -32,22 +35,35 @@ func main() {
 			log.Panic(err)
 		}
 		slog.Info(dir, "msg", "digen definition loading is finished.")
-	case "func":
-		pg := digen.NewProviderSetGen(*label)
-		err := pg.GenerateFromFuncPkg(*path)
-		if err != nil {
-			log.Panic(err)
-		}
-	case "struct":
-		pg := digen.NewProviderSetGen(*label)
-		err := pg.GenerateFromStructPkg(*path)
-		if err != nil {
-			log.Panic(err)
+	case "wire":
+		switch strings.ToLower(*wire) {
+		case "all":
+			pg := digen.NewProviderSetGen(*label)
+			err = pg.GenerateFromFuncPkg(*path)
+			if err != nil {
+				log.Panic(err)
+			}
+			err = pg.GenerateFromStructPkg(*path)
+			if err != nil {
+				log.Panic(err)
+			}
+		case "func":
+			pg := digen.NewProviderSetGen(*label)
+			err = pg.GenerateFromFuncPkg(*path)
+			if err != nil {
+				log.Panic(err)
+			}
+		case "struct":
+			pg := digen.NewProviderSetGen(*label)
+			err = pg.GenerateFromStructPkg(*path)
+			if err != nil {
+				log.Panic(err)
+			}
 		}
 	}
 }
 
-func Generate(path string) error {
+func Scan(path string) error {
 	pkg := types.Load(path)
 	c := &Container{}
 	err := c.LoadDefinitions(pkg)
@@ -57,7 +73,6 @@ func Generate(path string) error {
 	cleanup := func() error {
 		return errors.Join(
 			store.DeleteComponentByPkg(pkg.PkgPath),
-			store.DeleteImplementByPkg(pkg.PkgPath),
 			store.DeleteProviderByPkg(pkg.PkgPath),
 			store.DeleteProviderRequirementByPkg(pkg.PkgPath),
 		)

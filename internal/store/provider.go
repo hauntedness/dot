@@ -92,6 +92,6 @@ func FindProviderByPkg(pkg string) ([]Provider, error) {
 }
 
 func DeleteProviderByPkg(pkg string) error {
-	_, err := db.Exec("delete from providers where cmp_pkg_path = ?", pkg)
+	_, err := db.Exec("delete from providers where pvd_pkg_path = ?", pkg)
 	return err
 }

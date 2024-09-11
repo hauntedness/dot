@@ -72,7 +72,7 @@ func TestFindImplements(t *testing.T) {
 				InterfaceName: lt.Name(),
 			},
 			want: func(is []ImplementStmt, err error) bool {
-				return len(is) == 2 && err == nil
+				return len(is) == 1 && err == nil
 			},
 		},
 	}

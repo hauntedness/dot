@@ -51,7 +51,7 @@ func (s *ImplementStmt) IsPointerImpl() bool {
 }
 
 func (s *ImplementStmt) SetDirectives(directives []string) {
-	dir := Directive{cmd: "implements", ds: directives, fs: flag.NewFlagSet("implements", flag.PanicOnError)}
+	dir := Directive{cmd: "implements", docs: directives, fs: flag.NewFlagSet("implements", flag.PanicOnError)}
 	dir.fs.String("labels", "", "label this uses.")
 	err := dir.Parse(func(g *flag.Flag) {
 		if g.Name == "labels" {

@@ -16,6 +16,7 @@ type Struct struct {
 	labels        Labels
 	componentName string
 	isComponent   bool
+	autowire      bool
 }
 
 func LoadStructs(pkg string) []*Struct {
@@ -141,18 +142,23 @@ func (s *Struct) TypeParams() *types.TypeParamList {
 }
 
 func (s *Struct) SetDirectives(directives []string) {
-	dir := Directive{cmd: "component", ds: directives, fs: flag.NewFlagSet("component", flag.PanicOnError)}
+	dir := Directive{cmd: "component", docs: directives, fs: flag.NewFlagSet("component", flag.PanicOnError)}
 	dir.fs.String("name", "", "name of the struct")
+	dir.fs.Bool("wire", false, "whether generate wire definition for this function.")
 	dir.fs.String("labels", "", "label that take this func into account.")
 	err := dir.Parse(func(g *flag.Flag) {
 		if g.Name == "name" {
 			s.componentName = g.Value.String()
+		} else if g.Name == "wire" && g.Value.String() == "true" {
+			s.autowire = true
 		} else if g.Name == "labels" {
 			s.labels.Append(g.Value.String())
 		}
 	})
 	if err != nil {
 		panic(err)
+	} else {
+		s.isComponent = true
 	}
 }
 
@@ -165,4 +171,8 @@ func (s *Struct) ComponentName() string {
 
 func (s *Struct) IsComponent() bool {
 	return s.isComponent
+}
+
+func (s *Struct) Autowire() bool {
+	return s.autowire
 }

@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/hauntedness/dot/internal/store"
 	"github.com/hauntedness/dot/internal/types"
@@ -103,17 +102,6 @@ func (pg *ProviderGen) walk(ps *wire.ProviderSet, provider *store.Provider) erro
 	return nil
 }
 
-func (pg *ProviderGen) checkLabel(requiredLabels string) bool {
-	if requiredLabels == "" {
-		return true
-	}
-	if pg.label == "" {
-		return false
-	}
-	lb := types.Labels{}
-	return lb.Append(requiredLabels).Labeled(pg.label)
-}
-
 func (pg *ProviderGen) findInterfaceProvider(req *store.ProviderRequirement) (*store.Provider, error) {
 	checked := func(providers []store.Provider, err error) (*store.Provider, error) {
 		if err != nil {
@@ -168,9 +156,7 @@ func (pg *ProviderGen) FindProviderByCmp(pkg string, typ string, kind int) ([]st
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(list, func(i store.Provider) bool {
-		return !pg.checkLabel(i.Labels)
-	}), nil
+	return filterByLabel(pg, list, func(s store.Provider) string { return s.Labels }), nil
 }
 
 func (pg *ProviderGen) FindProviderByPkg(pkg string) ([]store.Provider, error) {
@@ -178,9 +164,7 @@ func (pg *ProviderGen) FindProviderByPkg(pkg string) ([]store.Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(list, func(i store.Provider) bool {
-		return !pg.checkLabel(i.Labels)
-	}), nil
+	return filterByLabel(pg, list, func(s store.Provider) string { return s.Labels }), nil
 }
 
 func (pg *ProviderGen) FindProviderByName(component string) ([]store.Provider, error) {
@@ -188,9 +172,7 @@ func (pg *ProviderGen) FindProviderByName(component string) ([]store.Provider, e
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(list, func(i store.Provider) bool {
-		return !pg.checkLabel(i.Labels)
-	}), nil
+	return filterByLabel(pg, list, func(s store.Provider) string { return s.Labels }), nil
 }
 
 func (pg *ProviderGen) FindProviderRequirements(c *store.Provider) ([]store.ProviderRequirement, error) {
@@ -198,9 +180,7 @@ func (pg *ProviderGen) FindProviderRequirements(c *store.Provider) ([]store.Prov
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(requirements, func(i store.ProviderRequirement) bool {
-		return !pg.checkLabel(i.Labels)
-	}), nil
+	return filterByLabel(pg, requirements, func(s store.ProviderRequirement) string { return s.Labels }), nil
 }
 
 func (pg *ProviderGen) FindImplementsByInterface(InterfacePkg string, InterfaceName string) ([]store.ImplementStmt, error) {
@@ -208,9 +188,7 @@ func (pg *ProviderGen) FindImplementsByInterface(InterfacePkg string, InterfaceN
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(list, func(i store.ImplementStmt) bool {
-		return !pg.checkLabel(i.Labels)
-	}), nil
+	return filterByLabel(pg, list, func(s store.ImplementStmt) string { return s.Labels }), nil
 }
 
 func (pg *ProviderGen) FindImplementsByImpl(impl *store.ImplementStmt) ([]store.ImplementStmt, error) {
@@ -218,7 +196,36 @@ func (pg *ProviderGen) FindImplementsByImpl(impl *store.ImplementStmt) ([]store.
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(list, func(i store.ImplementStmt) bool {
-		return !pg.checkLabel(i.Labels)
-	}), nil
+	return filterByLabel(pg, list, func(s store.ImplementStmt) string { return s.Labels }), nil
+}
+
+// filterByLabel
+func filterByLabel[T any](pg *ProviderGen, list []T, label func(i T) string) []T {
+	// no label is in most case.
+	if pg.label == "" {
+		var unlabeld []T
+		for _, v := range list {
+			if label(v) == "" {
+				unlabeld = append(unlabeld, v)
+			}
+		}
+		return unlabeld
+	} else {
+		var labeled []T
+		var unlabeld []T
+		for _, v := range list {
+			if label(v) == "" {
+				unlabeld = append(unlabeld, v)
+			} else {
+				lb := new(types.Labels).Append(label(v))
+				if lb.Labeled(pg.label) {
+					labeled = append(labeled, v)
+				}
+			}
+		}
+		if len(labeled) > 0 {
+			return labeled
+		}
+		return unlabeld
+	}
 }
