@@ -30,6 +30,10 @@ func (*Provider) TableName() string {
 	return "providers"
 }
 
+func (p *Provider) IocLabels() string {
+	return p.Labels
+}
+
 func (a *Provider) Compare(b *Provider) int {
 	return cmp.Compare(a.PvdPkgPath+a.PvdOriName, b.PvdPkgPath+b.PvdOriName)
 }

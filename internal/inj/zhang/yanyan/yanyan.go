@@ -1,12 +1,12 @@
 package yanyan
 
-//go:generate digen
+//go:generate digen -cmd=scan
 var _ int
 
 //go:ioc component
 type YanYan struct{}
 
-//go:ioc provider --name yanYan
+//go:ioc provider
 func NewYanYan() YanYan {
 	return YanYan{}
 }

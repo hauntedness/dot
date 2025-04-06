@@ -1,6 +1,6 @@
 package liu2
 
-//go:generate digen
+//go:generate digen -cmd=scan
 
 type Guan2 struct{}
 

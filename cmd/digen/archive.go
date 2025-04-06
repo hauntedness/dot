@@ -8,7 +8,6 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// todo(思考: 标注component真的有用吗? 看起来只标注provider也是可行的. 而且第三方的包也没法标注component. )
 // 将components存到表里
 //  1. 处理struct类型的component
 //  2. 处理interface类型的component

@@ -17,8 +17,8 @@ type bindDef struct {
 }
 
 type ProviderSet struct {
-	builder   strings.Builder
 	Name      string //
+	builder   strings.Builder
 	structDef *types.Struct
 	providers []*store.Provider
 	binds     []bindDef

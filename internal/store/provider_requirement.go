@@ -22,6 +22,10 @@ func (*ProviderRequirement) TableName() string {
 	return "provider_requirements"
 }
 
+func (p *ProviderRequirement) IocLabels() string {
+	return p.Labels
+}
+
 // TableProviderRequirement
 // 该表存储Provider的信息和它所需要的所有的components
 const TableProviderRequirements = `

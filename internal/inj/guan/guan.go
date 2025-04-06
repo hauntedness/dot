@@ -2,7 +2,7 @@ package guan
 
 import "github.com/hauntedness/dot/internal/inj/zhang"
 
-//go:generate digen
+//go:generate digen -cmd=scan
 var _ int
 
 //go:ioc component

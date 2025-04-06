@@ -6,7 +6,9 @@ import (
 	"github.com/hauntedness/dot/internal/inj/guan"
 )
 
-//go:generate digen
+//go:generate digen -cmd=scan
+//go:generate digen -cmd=wire --struct
+var _ int
 
 // Liu
 //
@@ -14,7 +16,7 @@ import (
 //
 //go:ioc component --wire
 type Liu struct {
-	_ *guan.Guan
+	Guan *guan.Guan
 }
 
 // NewLiu

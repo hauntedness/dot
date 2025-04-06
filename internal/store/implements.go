@@ -17,6 +17,10 @@ func (*ImplementStmt) TableName() string {
 	return "implement_stmts"
 }
 
+func (i *ImplementStmt) IocLabels() string {
+	return i.Labels
+}
+
 // TableProvider
 // 该表存储Provider的信息和它所能提供的component
 const TableImplementStmts = `

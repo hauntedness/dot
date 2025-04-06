@@ -60,9 +60,9 @@ func (pg *ProviderGen) walk(ps *wire.ProviderSet, provider *store.Provider) erro
 			if err != nil {
 				return err
 			}
-			if l := len(providers); l == 0 {
+			if length := len(providers); length == 0 {
 				return fmt.Errorf("no providers found for %#v", requirement)
-			} else if l > 1 {
+			} else if length > 1 {
 				if requirement.CmpPvdName == "" {
 					return fmt.Errorf("could not determine providers. req: %v, providers: %v", requirement, providers)
 				}
@@ -83,7 +83,7 @@ func (pg *ProviderGen) walk(ps *wire.ProviderSet, provider *store.Provider) erro
 				if err != nil {
 					return err
 				}
-			} else if l == 1 {
+			} else if length == 1 {
 				provider := &providers[0]
 				if requirement.CmpPvdName != "" {
 					name := cmp.Or(provider.PvdName, provider.PvdOriName)
@@ -156,7 +156,7 @@ func (pg *ProviderGen) FindProviderByCmp(pkg string, typ string, kind int) ([]st
 	if err != nil {
 		return nil, err
 	}
-	return filterByLabel(pg, list, func(s store.Provider) string { return s.Labels }), nil
+	return filterByLabel(pg, list), nil
 }
 
 func (pg *ProviderGen) FindProviderByPkg(pkg string) ([]store.Provider, error) {
@@ -164,7 +164,7 @@ func (pg *ProviderGen) FindProviderByPkg(pkg string) ([]store.Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return filterByLabel(pg, list, func(s store.Provider) string { return s.Labels }), nil
+	return filterByLabel(pg, list), nil
 }
 
 func (pg *ProviderGen) FindProviderByName(component string) ([]store.Provider, error) {
@@ -172,7 +172,7 @@ func (pg *ProviderGen) FindProviderByName(component string) ([]store.Provider, e
 	if err != nil {
 		return nil, err
 	}
-	return filterByLabel(pg, list, func(s store.Provider) string { return s.Labels }), nil
+	return filterByLabel(pg, list), nil
 }
 
 func (pg *ProviderGen) FindProviderRequirements(c *store.Provider) ([]store.ProviderRequirement, error) {
@@ -180,7 +180,7 @@ func (pg *ProviderGen) FindProviderRequirements(c *store.Provider) ([]store.Prov
 	if err != nil {
 		return nil, err
 	}
-	return filterByLabel(pg, requirements, func(s store.ProviderRequirement) string { return s.Labels }), nil
+	return filterByLabel(pg, requirements), nil
 }
 
 func (pg *ProviderGen) FindImplementsByInterface(InterfacePkg string, InterfaceName string) ([]store.ImplementStmt, error) {
@@ -188,7 +188,7 @@ func (pg *ProviderGen) FindImplementsByInterface(InterfacePkg string, InterfaceN
 	if err != nil {
 		return nil, err
 	}
-	return filterByLabel(pg, list, func(s store.ImplementStmt) string { return s.Labels }), nil
+	return filterByLabel(pg, list), nil
 }
 
 func (pg *ProviderGen) FindImplementsByImpl(impl *store.ImplementStmt) ([]store.ImplementStmt, error) {
@@ -196,28 +196,39 @@ func (pg *ProviderGen) FindImplementsByImpl(impl *store.ImplementStmt) ([]store.
 	if err != nil {
 		return nil, err
 	}
-	return filterByLabel(pg, list, func(s store.ImplementStmt) string { return s.Labels }), nil
+	return filterByLabel(pg, list), nil
+}
+
+type ILabel[T any] interface {
+	IocLabels() string
+	*T
 }
 
 // filterByLabel
-func filterByLabel[T any](pg *ProviderGen, list []T, label func(i T) string) []T {
+func filterByLabel[T any, L ILabel[T]](pg *ProviderGen, list []T) []T {
 	// no label is in most case.
 	if pg.label == "" {
 		var unlabeld []T
 		for _, v := range list {
-			if label(v) == "" {
+			var pt L = &v
+			labels := pt.IocLabels()
+			if labels == "" {
 				unlabeld = append(unlabeld, v)
 			}
 		}
 		return unlabeld
-	} else {
+	}
+	//
+	{
 		var labeled []T
 		var unlabeld []T
 		for _, v := range list {
-			if label(v) == "" {
+			var pt L = &v
+			labels := pt.IocLabels()
+			if labels == "" {
 				unlabeld = append(unlabeld, v)
 			} else {
-				lb := new(types.Labels).Append(label(v))
+				lb := new(types.Labels).Append(labels)
 				if lb.Labeled(pg.label) {
 					labeled = append(labeled, v)
 				}

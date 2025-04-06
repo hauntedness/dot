@@ -20,7 +20,8 @@ func main() {
 	store.Init()
 	path := flag.String("pkg", ".", "the package or dir to be scanned")
 	cmdX := flag.String("cmd", "scan", "command can be 'scan' or 'wire'.")
-	wire := flag.String("wire", "all", "wire option. can be 'func' or 'struct' or 'all'")
+	wireFunc := flag.Bool("func", false, "wire option. only wire func providers.")
+	wireStruct := flag.Bool("struct", false, "wire option. only wire strcut providers.")
 	label := flag.String("label", "", "generate wire provider set")
 	flag.Parse()
 	var err error
@@ -36,8 +37,12 @@ func main() {
 		}
 		slog.Info(dir, "msg", "digen definition loading is finished.")
 	case "wire":
-		switch strings.ToLower(*wire) {
-		case "all":
+		if !*wireFunc && !*wireStruct {
+			*wireFunc = true
+			*wireStruct = true
+		}
+		switch {
+		case *wireFunc && *wireStruct:
 			pg := digen.NewProviderSetGen(*label)
 			err = pg.GenerateFromFuncPkg(*path)
 			if err != nil {
@@ -47,13 +52,13 @@ func main() {
 			if err != nil {
 				log.Panic(err)
 			}
-		case "func":
+		case *wireFunc:
 			pg := digen.NewProviderSetGen(*label)
 			err = pg.GenerateFromFuncPkg(*path)
 			if err != nil {
 				log.Panic(err)
 			}
-		case "struct":
+		case *wireStruct:
 			pg := digen.NewProviderSetGen(*label)
 			err = pg.GenerateFromStructPkg(*path)
 			if err != nil {

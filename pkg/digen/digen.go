@@ -42,6 +42,7 @@ func (pg *ProviderGen) GenerateFromStruct(st *types.Struct) error {
 
 // Struct
 func (pg *ProviderGen) GenerateFromStructPkg(pkg string) error {
+	fmt.Println("digen source pkg:", pkg)
 	structs := types.LoadStructs(pkg)
 	for _, st := range structs {
 		err := pg.GenerateFromStruct(st)
